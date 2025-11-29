@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function DashboardScreen() {
+export default function DashboardScreen({ navigation }) {
   const courses = [
     { id: 1, title: 'Mathematics 101', progress: 75, icon: 'calculator' },
     { id: 2, title: 'Science Fundamentals', progress: 50, icon: 'flask' },
@@ -22,6 +22,10 @@ export default function DashboardScreen() {
     { id: 2, title: 'New Course Available', date: '2024-01-10', icon: 'megaphone' },
     { id: 3, title: 'Holiday Notice', date: '2024-01-05', icon: 'alert-circle' },
   ];
+
+  const handleCoursePress = (courseId) => {
+    navigation.navigate('Courses');
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -55,7 +59,11 @@ export default function DashboardScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Ongoing Courses</Text>
           {courses.map((course) => (
-            <TouchableOpacity key={course.id} style={styles.courseCard}>
+            <TouchableOpacity 
+              key={course.id} 
+              style={styles.courseCard}
+              onPress={() => handleCoursePress(course.id)}
+            >
               <View style={styles.courseHeader}>
                 <Ionicons name={course.icon} size={24} color="#2E86AB" />
                 <Text style={styles.courseTitle}>{course.title}</Text>

@@ -10,11 +10,12 @@ import {
   ScrollView,
   StyleSheet
 } from 'react-native';
+import { useAuth } from '../../components/AuthContext';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { login, loading } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -22,16 +23,12 @@ export default function LoginScreen({ navigation }) {
       return;
     }
 
-    setLoading(true);
-    
-    setTimeout(() => {
-      setLoading(false);
-      if (email && password) {
-        navigation.replace('Main');
-      } else {
-        Alert.alert('Error', 'Invalid credentials');
-      }
-    }, 1500);
+    try {
+      await login(email, password);
+      // Navigation is handled automatically by AppNavigator based on user role
+    } catch (error) {
+      Alert.alert('Error', 'Invalid credentials');
+    }
   };
 
   return (
@@ -89,7 +86,13 @@ export default function LoginScreen({ navigation }) {
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              Don't have an account? <Text style={styles.signUpText}>Sign Up</Text>
+              Don't have an account?{' '}
+              <Text 
+                style={styles.signUpText}
+                onPress={() => navigation.navigate('Register')}
+              >
+                Sign Up
+              </Text>
             </Text>
           </View>
         </View>
@@ -98,6 +101,7 @@ export default function LoginScreen({ navigation }) {
   );
 }
 
+// ... styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,

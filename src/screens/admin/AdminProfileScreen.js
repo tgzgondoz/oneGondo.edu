@@ -8,8 +8,11 @@ import {
   StyleSheet
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../components/AuthContext';
 
-export default function ProfileScreen({ navigation }) {
+export default function AdminProfileScreen() {
+  const { user, logout } = useAuth();
+
   const handleLogout = () => {
     Alert.alert(
       'Logout',
@@ -19,17 +22,17 @@ export default function ProfileScreen({ navigation }) {
         { 
           text: 'Logout', 
           style: 'destructive',
-          onPress: () => navigation.replace('Login')
+          onPress: () => logout()
         }
       ]
     );
   };
 
   const menuItems = [
-    { icon: 'person', label: 'Edit Profile' },
-    { icon: 'settings', label: 'Settings' },
-    { icon: 'help-circle', label: 'Help & Support' },
-    { icon: 'shield-checkmark', label: 'Privacy Policy' },
+    { icon: 'person', label: 'Admin Profile' },
+    { icon: 'settings', label: 'System Settings' },
+    { icon: 'analytics', label: 'Analytics' },
+    { icon: 'shield-checkmark', label: 'Security' },
   ];
 
   return (
@@ -37,10 +40,13 @@ export default function ProfileScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>JS</Text>
+          <Text style={styles.avatarText}>{user?.avatar || 'A'}</Text>
         </View>
-        <Text style={styles.name}>John Student</Text>
-        <Text style={styles.email}>john.student@onegondo.edu</Text>
+        <Text style={styles.name}>{user?.name || 'Admin User'}</Text>
+        <Text style={styles.email}>{user?.email || 'admin@onegondo.edu'}</Text>
+        <View style={styles.roleBadge}>
+          <Text style={styles.roleText}>Administrator</Text>
+        </View>
       </View>
 
       {/* Menu */}
@@ -107,6 +113,18 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 16,
     color: '#6c757d',
+    marginBottom: 10,
+  },
+  roleBadge: {
+    backgroundColor: '#2E86AB',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  roleText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   menu: {
     backgroundColor: '#fff',
