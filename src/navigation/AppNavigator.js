@@ -1,3 +1,4 @@
+import 'react-native-gesture-handler';
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -30,17 +31,20 @@ function MainTabs() {
         tabBarActiveTintColor: '#2E86AB',
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
+        tabBarStyle: {
+          backgroundColor: 'white',
+          borderTopWidth: 1,
+          borderTopColor: '#e5e5e5',
+        },
       })}
     >
       <Tab.Screen 
         name="Dashboard" 
         component={DashboardScreen}
-        options={{ title: 'Dashboard' }}
       />
       <Tab.Screen 
         name="Profile" 
         component={ProfileScreen}
-        options={{ title: 'Profile' }}
       />
     </Tab.Navigator>
   );
@@ -53,7 +57,6 @@ export default function AppNavigator() {
       initialRouteName="Login"
       screenOptions={{
         headerShown: false,
-        gestureEnabled: true
       }}
     >
       <Stack.Screen 

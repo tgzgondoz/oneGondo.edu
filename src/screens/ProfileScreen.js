@@ -2,10 +2,10 @@ import React from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  Alert
+  Alert,
+  StyleSheet
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -25,8 +25,16 @@ export default function ProfileScreen({ navigation }) {
     );
   };
 
+  const menuItems = [
+    { icon: 'person', label: 'Edit Profile' },
+    { icon: 'settings', label: 'Settings' },
+    { icon: 'help-circle', label: 'Help & Support' },
+    { icon: 'shield-checkmark', label: 'Privacy Policy' },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>JS</Text>
@@ -35,33 +43,28 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.email}>john.student@onegondo.edu</Text>
       </View>
 
+      {/* Menu */}
       <View style={styles.menu}>
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="person" size={24} color="#6c757d" />
-          <Text style={styles.menuText}>Edit Profile</Text>
-          <Ionicons name="chevron-forward" size={20} color="#6c757d" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="settings" size={24} color="#6c757d" />
-          <Text style={styles.menuText}>Settings</Text>
-          <Ionicons name="chevron-forward" size={20} color="#6c757d" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="help-circle" size={24} color="#6c757d" />
-          <Text style={styles.menuText}>Help & Support</Text>
-          <Ionicons name="chevron-forward" size={20} color="#6c757d" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="shield-checkmark" size={24} color="#6c757d" />
-          <Text style={styles.menuText}>Privacy Policy</Text>
-          <Ionicons name="chevron-forward" size={20} color="#6c757d" />
-        </TouchableOpacity>
+        {menuItems.map((item, index) => (
+          <TouchableOpacity 
+            key={item.label}
+            style={[
+              styles.menuItem,
+              index !== menuItems.length - 1 && styles.menuItemBorder
+            ]}
+          >
+            <Ionicons name={item.icon} size={24} color="#6c757d" />
+            <Text style={styles.menuText}>{item.label}</Text>
+            <Ionicons name="chevron-forward" size={20} color="#6c757d" />
+          </TouchableOpacity>
+        ))}
       </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+      {/* Logout Button */}
+      <TouchableOpacity 
+        style={styles.logoutButton}
+        onPress={handleLogout}
+      >
         <Ionicons name="log-out" size={24} color="#dc3545" />
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
@@ -116,6 +119,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 20,
+  },
+  menuItemBorder: {
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
   },

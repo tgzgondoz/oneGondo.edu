@@ -3,9 +3,9 @@ import {
   View,
   Text,
   ScrollView,
-  StyleSheet,
   TouchableOpacity,
-  SafeAreaView
+  SafeAreaView,
+  StyleSheet
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
