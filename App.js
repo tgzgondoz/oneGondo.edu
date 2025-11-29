@@ -1,20 +1,56 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import 'react-native-gesture-handler';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { View, Text, StyleSheet } from 'react-native';
+import AppNavigator from './src/navigation/AppNavigator';
 
-export default function App() {
+// Simple loading component
+function LoadingScreen() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
+    <View style={styles.loadingContainer}>
+      <Text style={styles.loadingText}>oneGondo.edu</Text>
+      <Text>Loading...</Text>
     </View>
   );
 }
 
+export default function App() {
+  const [isReady, setIsReady] = React.useState(false);
+
+  React.useEffect(() => {
+    setTimeout(() => {
+      setIsReady(true);
+    }, 1000);
+  }, []);
+
+  if (!isReady) {
+    return <LoadingScreen />;
+  }
+
+  return (
+    <NavigationContainer
+      fallback={
+        <View style={styles.loadingContainer}>
+          <Text>Loading navigation...</Text>
+        </View>
+      }
+    >
+      <AppNavigator />
+    </NavigationContainer>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
+  loadingContainer: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  loadingText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2E86AB',
+    marginBottom: 10,
   },
 });
