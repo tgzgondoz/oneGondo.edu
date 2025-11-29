@@ -1,0 +1,26 @@
+expo/
+├── assets/
+├── node_modules/
+└── src/
+    ├── navigation/
+    │   ├── AppNavigator.js
+    │   ├── AuthNavigator.js
+    │   ├── StudentNavigator.js
+    │   └── AdminNavigator.js
+    ├── screens/
+    │   ├── auth/
+    │   │   ├── LoginScreen.js
+    │   │   └── RegisterScreen.js
+    │   ├── student/
+    │   │   ├── DashboardScreen.js
+    │   │   ├── ProfileScreen.js
+    │   │   └── CoursesScreen.js
+    │   └── admin/
+    │       ├── AdminDashboardScreen.js
+    │       ├── AdminProfileScreen.js
+    │       ├── UserManagementScreen.js
+    │       └── CourseManagementScreen.js
+    ├── components/
+    │   ├── AuthContext.js
+    │   └── common/
+    └── styles/
