@@ -1,19 +1,34 @@
+// App.js
+import React, { useState } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View } from 'react-native';
-import { TailwindProvider } from 'tailwindcss-react-native';
+import { SafeAreaView } from 'react-native';
+import Dashboard from './src/screens/Dashboard';
+import Students from './src/screens/Students';
+import StudentProfile from './src/screens/StudentProfile';
+import Courses from './src/screens/Courses';
+import Tests from './src/screens/Tests';
+import Tutorials from './src/screens/Tutorials';
+import Uploads from './src/screens/Uploads';
+
+const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <TailwindProvider>
-      <View className="flex-1 bg-white items-center justify-center">
-        <Text className="text-lg text-blue-600 font-bold mb-4">
-          Welcome to Your App!
-        </Text>
-        <Text className="text-base text-gray-600 text-center px-4">
-          Open up App.js to start working on your app!
-        </Text>
-        <StatusBar style="auto" />
-      </View>
-    </TailwindProvider>
+    <SafeAreaView className="flex-1 bg-background">
+      <StatusBar style="auto" />
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Dashboard">
+          <Stack.Screen name="Dashboard" component={Dashboard} />
+          <Stack.Screen name="Students" component={Students} />
+          <Stack.Screen name="StudentProfile" component={StudentProfile} />
+          <Stack.Screen name="Courses" component={Courses} />
+          <Stack.Screen name="Tests" component={Tests} />
+          <Stack.Screen name="Tutorials" component={Tutorials} />
+          <Stack.Screen name="Uploads" component={Uploads} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaView>
   );
 }
