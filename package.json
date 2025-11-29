@@ -10,13 +10,18 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@clerk/clerk-expo": "^2.19.6",
+    "@clerk/clerk-js": "^5.111.0",
+    "@clerk/clerk-react": "^5.57.0",
     "@expo/vector-icons": "^15.0.3",
     "@react-navigation/bottom-tabs": "^7.8.7",
     "@react-navigation/native": "^7.1.22",
     "@react-navigation/stack": "^7.6.8",
     "axios": "^1.13.2",
     "expo": "~54.0.25",
+    "expo-secure-store": "~15.0.7",
     "expo-status-bar": "~3.0.8",
+    "expo-web-browser": "~15.0.9",
     "nativewind": "^4.2.1",
     "react": "19.1.0",
     "react-native": "0.81.5",

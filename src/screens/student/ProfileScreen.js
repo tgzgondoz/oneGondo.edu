@@ -6,7 +6,7 @@ import {
   SafeAreaView,
   Alert,
   StyleSheet
-} from 'react-native';
+} from 'react-native'; // Ensure all imports are present
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../components/AuthContext';
 

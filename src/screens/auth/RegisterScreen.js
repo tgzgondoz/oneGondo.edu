@@ -17,7 +17,7 @@ export default function RegisterScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { signUp, loading } = useAuth();
 
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword || !fullName) {
@@ -35,22 +35,17 @@ export default function RegisterScreen({ navigation }) {
       return;
     }
 
-    setLoading(true);
+    const result = await signUp(email, password, fullName);
     
-    // Simulate registration
-    setTimeout(() => {
-      setLoading(false);
+    if (result.success) {
       Alert.alert(
-        'Registration Successful',
-        'Your account has been created successfully',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Login')
-          }
-        ]
+        'Success',
+        'Account created successfully!',
+        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
       );
-    }, 1500);
+    } else {
+      Alert.alert('Error', result.error || 'Registration failed');
+    }
   };
 
   return (

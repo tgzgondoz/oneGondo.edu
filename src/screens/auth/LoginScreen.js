@@ -15,7 +15,7 @@ import { useAuth } from '../../components/AuthContext';
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, loading } = useAuth();
+  const { signIn, loading } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -23,12 +23,20 @@ export default function LoginScreen({ navigation }) {
       return;
     }
 
-    try {
-      await login(email, password);
-      // Navigation is handled automatically by AppNavigator based on user role
-    } catch (error) {
-      Alert.alert('Error', 'Invalid credentials');
+    const result = await signIn(email, password);
+    
+    if (result.success) {
+      // Navigation is handled automatically by AppNavigator
+      Alert.alert('Success', 'Welcome back!');
+    } else {
+      Alert.alert('Error', result.error || 'Login failed');
     }
+  };
+
+  const handleClerkSignIn = () => {
+    Alert.alert('Info', 'In a production app, this would open Clerk sign-in');
+    // For now, use our mock auth
+    handleLogin();
   };
 
   return (
@@ -78,8 +86,23 @@ export default function LoginScreen({ navigation }) {
               </Text>
             </TouchableOpacity>
 
+            {/* Demo notice */}
+            <View style={styles.demoNotice}>
+              <Text style={styles.demoNoticeText}>
+                Demo: Use any email. Admin role for emails containing "admin"
+              </Text>
+            </View>
+
             <TouchableOpacity style={styles.forgotPassword}>
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            </TouchableOpacity>
+
+            {/* Clerk Sign In Option */}
+            <TouchableOpacity 
+              style={styles.clerkButton}
+              onPress={handleClerkSignIn}
+            >
+              <Text style={styles.clerkButtonText}>Sign In with Clerk (Demo)</Text>
             </TouchableOpacity>
           </View>
 
@@ -101,7 +124,6 @@ export default function LoginScreen({ navigation }) {
   );
 }
 
-// ... styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -170,13 +192,38 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
+  demoNotice: {
+    backgroundColor: '#fff3cd',
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 12,
+    borderWidth: 1,
+    borderColor: '#ffeaa7',
+  },
+  demoNoticeText: {
+    color: '#856404',
+    fontSize: 12,
+    textAlign: 'center',
+  },
   forgotPassword: {
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 16,
   },
   forgotPasswordText: {
     color: '#2E86AB',
     fontSize: 16,
+  },
+  clerkButton: {
+    backgroundColor: '#6c757d',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  clerkButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   footer: {
     paddingTop: 24,
