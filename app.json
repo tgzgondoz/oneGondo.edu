@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "oneGondo.edu",
-    "slug": "oneGondo.edu",
+    "name": "oneGondo-edu",
+    "slug": "oneGondo-edu",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
