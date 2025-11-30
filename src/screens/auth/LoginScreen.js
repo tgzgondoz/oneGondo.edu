@@ -15,26 +15,48 @@ import { useAuth } from '../../components/AuthContext';
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
   const [loginType, setLoginType] = useState('student'); // 'student' or 'admin'
   const { signIn, loading } = useAuth();
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
+    if (loginType === 'admin') {
+      if (!email || !password) {
+        Alert.alert('Error', 'Please fill in all fields');
+        return;
+      }
+    } else {
+      if (!code || code.length !== 4) {
+        Alert.alert('Error', 'Please enter a valid 4-digit code');
+        return;
+      }
     }
 
     // Add login type to the signIn call
-    const result = await signIn(email, password, loginType);
+    const result = await signIn(
+      loginType === 'admin' ? email : code, 
+      loginType === 'admin' ? password : null, 
+      loginType
+    );
     
     if (result.success) {
       const welcomeMessage = loginType === 'admin' 
         ? 'Welcome back, Administrator!' 
         : 'Welcome back!';
       Alert.alert('Success', welcomeMessage);
+      
+      // Navigation will be handled by the AuthContext based on user type
     } else {
       Alert.alert('Error', result.error || 'Login failed');
     }
+  };
+
+  const handleLoginTypeChange = (type) => {
+    setLoginType(type);
+    // Clear fields when switching login type
+    setEmail('');
+    setPassword('');
+    setCode('');
   };
 
   return (
@@ -62,7 +84,7 @@ export default function LoginScreen({ navigation }) {
                   styles.loginTypeButton, 
                   loginType === 'student' && styles.loginTypeButtonActive
                 ]}
-                onPress={() => setLoginType('student')}
+                onPress={() => handleLoginTypeChange('student')}
               >
                 <Text style={[
                   styles.loginTypeText,
@@ -77,7 +99,7 @@ export default function LoginScreen({ navigation }) {
                   styles.loginTypeButton, 
                   loginType === 'admin' && styles.loginTypeButtonActive
                 ]}
-                onPress={() => setLoginType('admin')}
+                onPress={() => handleLoginTypeChange('admin')}
               >
                 <Text style={[
                   styles.loginTypeText,
@@ -88,24 +110,44 @@ export default function LoginScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#6c757d"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+            {loginType === 'admin' ? (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  placeholderTextColor="#6c757d"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#6c757d"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor="#6c757d"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                />
+              </>
+            ) : (
+              <TextInput
+                style={styles.input}
+                placeholder="Enter 4-digit Code"
+                placeholderTextColor="#6c757d"
+                value={code}
+                onChangeText={(text) => {
+                  // Allow only numbers and limit to 4 digits
+                  const numericText = text.replace(/[^0-9]/g, '');
+                  if (numericText.length <= 4) {
+                    setCode(numericText);
+                  }
+                }}
+                keyboardType="numeric"
+                maxLength={4}
+              />
+            )}
 
             {/* Dynamic Login Button */}
             <TouchableOpacity 
@@ -130,13 +172,15 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.demoNoticeText}>
                 {loginType === 'admin' 
                   ? 'Admin: Use admin credentials to access dashboard' 
-                  : 'Student: Use your student credentials or access code'
+                  : 'Student: Use your 4-digit access code'
                 }
               </Text>
             </View>
 
             <TouchableOpacity style={styles.forgotPassword}>
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              <Text style={styles.forgotPasswordText}>
+                {loginType === 'admin' ? 'Forgot Password?' : 'Lost your code?'}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -240,6 +284,7 @@ const styles = StyleSheet.create({
     borderColor: '#e9ecef',
     marginVertical: 8,
     fontSize: 16,
+    textAlign: 'center',
   },
   button: {
     padding: 16,
