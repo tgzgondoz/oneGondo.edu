@@ -15,6 +15,7 @@ import { useAuth } from '../../components/AuthContext';
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loginType, setLoginType] = useState('student'); // 'student' or 'admin'
   const { signIn, loading } = useAuth();
 
   const handleLogin = async () => {
@@ -23,20 +24,17 @@ export default function LoginScreen({ navigation }) {
       return;
     }
 
-    const result = await signIn(email, password);
+    // Add login type to the signIn call
+    const result = await signIn(email, password, loginType);
     
     if (result.success) {
-      // Navigation is handled automatically by AppNavigator
-      Alert.alert('Success', 'Welcome back!');
+      const welcomeMessage = loginType === 'admin' 
+        ? 'Welcome back, Administrator!' 
+        : 'Welcome back!';
+      Alert.alert('Success', welcomeMessage);
     } else {
       Alert.alert('Error', result.error || 'Login failed');
     }
-  };
-
-  const handleClerkSignIn = () => {
-    Alert.alert('Info', 'In a production app, this would open Clerk sign-in');
-    // For now, use our mock auth
-    handleLogin();
   };
 
   return (
@@ -57,6 +55,39 @@ export default function LoginScreen({ navigation }) {
             <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.formSubtitle}>Sign in to continue</Text>
 
+            {/* Login Type Selector */}
+            <View style={styles.loginTypeContainer}>
+              <TouchableOpacity 
+                style={[
+                  styles.loginTypeButton, 
+                  loginType === 'student' && styles.loginTypeButtonActive
+                ]}
+                onPress={() => setLoginType('student')}
+              >
+                <Text style={[
+                  styles.loginTypeText,
+                  loginType === 'student' && styles.loginTypeTextActive
+                ]}>
+                  Student Sign In
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.loginTypeButton, 
+                  loginType === 'admin' && styles.loginTypeButtonActive
+                ]}
+                onPress={() => setLoginType('admin')}
+              >
+                <Text style={[
+                  styles.loginTypeText,
+                  loginType === 'admin' && styles.loginTypeTextActive
+                ]}>
+                  Admin Sign In
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             <TextInput
               style={styles.input}
               placeholder="Email"
@@ -76,33 +107,36 @@ export default function LoginScreen({ navigation }) {
               secureTextEntry
             />
 
+            {/* Dynamic Login Button */}
             <TouchableOpacity 
-              style={[styles.button, loading && styles.buttonDisabled]}
+              style={[
+                styles.button, 
+                loginType === 'admin' ? styles.adminButton : styles.studentButton,
+                loading && styles.buttonDisabled
+              ]}
               onPress={handleLogin}
               disabled={loading}
             >
               <Text style={styles.buttonText}>
-                {loading ? 'Signing In...' : 'Sign In'}
+                {loading 
+                  ? `Signing In...` 
+                  : loginType === 'admin' ? 'Admin Sign In' : 'Student Sign In'
+                }
               </Text>
             </TouchableOpacity>
 
             {/* Demo notice */}
             <View style={styles.demoNotice}>
               <Text style={styles.demoNoticeText}>
-                Demo: Use any email. Admin role for emails containing "admin"
+                {loginType === 'admin' 
+                  ? 'Admin: Use admin credentials to access dashboard' 
+                  : 'Student: Use your student credentials or access code'
+                }
               </Text>
             </View>
 
             <TouchableOpacity style={styles.forgotPassword}>
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-
-            {/* Clerk Sign In Option */}
-            <TouchableOpacity 
-              style={styles.clerkButton}
-              onPress={handleClerkSignIn}
-            >
-              <Text style={styles.clerkButtonText}>Sign In with Clerk (Demo)</Text>
             </TouchableOpacity>
           </View>
 
@@ -166,7 +200,37 @@ const styles = StyleSheet.create({
   formSubtitle: {
     fontSize: 18,
     color: '#6c757d',
-    marginBottom: 32,
+    marginBottom: 24,
+  },
+  loginTypeContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#e9ecef',
+    borderRadius: 8,
+    padding: 4,
+    marginBottom: 24,
+  },
+  loginTypeButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  loginTypeButtonActive: {
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  loginTypeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6c757d',
+  },
+  loginTypeTextActive: {
+    color: '#2E86AB',
   },
   input: {
     backgroundColor: '#fff',
@@ -178,11 +242,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#2E86AB',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginVertical: 16,
+  },
+  studentButton: {
+    backgroundColor: '#28a745', // Green for student
+  },
+  adminButton: {
+    backgroundColor: '#dc3545', // Red for admin
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -193,15 +262,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   demoNotice: {
-    backgroundColor: '#fff3cd',
+    backgroundColor: '#d4edda',
     padding: 12,
     borderRadius: 8,
     marginVertical: 12,
     borderWidth: 1,
-    borderColor: '#ffeaa7',
+    borderColor: '#c3e6cb',
   },
   demoNoticeText: {
-    color: '#856404',
+    color: '#155724',
     fontSize: 12,
     textAlign: 'center',
   },
@@ -212,18 +281,6 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     color: '#2E86AB',
     fontSize: 16,
-  },
-  clerkButton: {
-    backgroundColor: '#6c757d',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  clerkButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
   footer: {
     paddingTop: 24,
