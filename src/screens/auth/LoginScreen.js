@@ -15,37 +15,22 @@ import { useAuth } from '../../components/AuthContext';
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [code, setCode] = useState('');
   const [loginType, setLoginType] = useState('student'); // 'student' or 'admin'
   const { signIn, loading } = useAuth();
 
   const handleLogin = async () => {
-    if (loginType === 'admin') {
-      if (!email || !password) {
-        Alert.alert('Error', 'Please fill in all fields');
-        return;
-      }
-    } else {
-      if (!code || code.length !== 4) {
-        Alert.alert('Error', 'Please enter a valid 4-digit code');
-        return;
-      }
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
     }
 
-    // Add login type to the signIn call
-    const result = await signIn(
-      loginType === 'admin' ? email : code, 
-      loginType === 'admin' ? password : null, 
-      loginType
-    );
+    const result = await signIn(email, password, loginType);
     
     if (result.success) {
       const welcomeMessage = loginType === 'admin' 
         ? 'Welcome back, Administrator!' 
         : 'Welcome back!';
       Alert.alert('Success', welcomeMessage);
-      
-      // Navigation will be handled by the AuthContext based on user type
     } else {
       Alert.alert('Error', result.error || 'Login failed');
     }
@@ -56,7 +41,6 @@ export default function LoginScreen({ navigation }) {
     // Clear fields when switching login type
     setEmail('');
     setPassword('');
-    setCode('');
   };
 
   return (
@@ -110,44 +94,27 @@ export default function LoginScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            {loginType === 'admin' ? (
-              <>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email"
-                  placeholderTextColor="#6c757d"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
+            {/* Email and Password Fields for both student and admin */}
+            <TextInput
+              style={styles.input}
+              placeholder="Email Address"
+              placeholderTextColor="#6c757d"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+            />
 
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  placeholderTextColor="#6c757d"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                />
-              </>
-            ) : (
-              <TextInput
-                style={styles.input}
-                placeholder="Enter 4-digit Code"
-                placeholderTextColor="#6c757d"
-                value={code}
-                onChangeText={(text) => {
-                  // Allow only numbers and limit to 4 digits
-                  const numericText = text.replace(/[^0-9]/g, '');
-                  if (numericText.length <= 4) {
-                    setCode(numericText);
-                  }
-                }}
-                keyboardType="numeric"
-                maxLength={4}
-              />
-            )}
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#6c757d"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoComplete="password"
+            />
 
             {/* Dynamic Login Button */}
             <TouchableOpacity 
@@ -171,15 +138,15 @@ export default function LoginScreen({ navigation }) {
             <View style={styles.demoNotice}>
               <Text style={styles.demoNoticeText}>
                 {loginType === 'admin' 
-                  ? 'Admin: Use admin credentials to access dashboard' 
-                  : 'Student: Use your 4-digit access code'
+                  ? 'Admin: Use admin email and password to access dashboard' 
+                  : 'Student: Use your registered email and password'
                 }
               </Text>
             </View>
 
             <TouchableOpacity style={styles.forgotPassword}>
               <Text style={styles.forgotPasswordText}>
-                {loginType === 'admin' ? 'Forgot Password?' : 'Lost your code?'}
+                Forgot Password?
               </Text>
             </TouchableOpacity>
           </View>
@@ -284,7 +251,6 @@ const styles = StyleSheet.create({
     borderColor: '#e9ecef',
     marginVertical: 8,
     fontSize: 16,
-    textAlign: 'center',
   },
   button: {
     padding: 16,
