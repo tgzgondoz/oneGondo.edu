@@ -175,7 +175,7 @@ export default function RegisterScreen({ navigation }) {
       
       if (result.success) {
         Alert.alert(
-          '🎉 Registration Successful!',
+          'Registration Successful!',
           'Welcome to oneGondo.edu! Your account has been created successfully.',
           [
             { 
@@ -194,35 +194,6 @@ export default function RegisterScreen({ navigation }) {
         );
       }
     }
-  };
-
-  // Simple Icon component using text/emojis
-  const Icon = ({ name, size, color, style }) => {
-    const iconMap = {
-      'account-outline': '👤',
-      'email-outline': '✉️',
-      'card-account-details': '🆔',
-      'phone-outline': '📱',
-      'lock-outline': '🔒',
-      'lock-check-outline': '🔐',
-      'eye': '👁️',
-      'eye-off': '👁️‍🗨️',
-      'check-circle': '✅',
-      'alert-circle': '⚠️',
-      'arrow-left': '←',
-      'arrow-right': '→',
-      'school': '🏫',
-      'account-check': '👤✅',
-      'shield-check': '🛡️',
-      'login': '🚪',
-      'chevron-right': '›',
-    };
-    
-    return (
-      <Text style={[{ fontSize: size, color }, style]}>
-        {iconMap[name] || '○'}
-      </Text>
-    );
   };
 
   // Simple Checkbox component
@@ -288,8 +259,7 @@ export default function RegisterScreen({ navigation }) {
       </Text>
 
       <View style={styles.inputGroup}>
-        <View style={styles.inputWithIcon}>
-          <Icon name="account-outline" size={24} color="#6c757d" style={styles.inputIcon} />
+        <View style={styles.inputContainer}>
           <TextInput
             style={[styles.input, errors.fullName && styles.inputError]}
             placeholder="Full Name (as per official documents)"
@@ -304,8 +274,7 @@ export default function RegisterScreen({ navigation }) {
       </View>
 
       <View style={styles.inputGroup}>
-        <View style={styles.inputWithIcon}>
-          <Icon name="email-outline" size={24} color="#6c757d" style={styles.inputIcon} />
+        <View style={styles.inputContainer}>
           <TextInput
             style={[styles.input, errors.email && styles.inputError]}
             placeholder="University Email Address"
@@ -321,8 +290,7 @@ export default function RegisterScreen({ navigation }) {
       </View>
 
       <View style={styles.inputGroup}>
-        <View style={styles.inputWithIcon}>
-          <Icon name="card-account-details" size={24} color="#6c757d" style={styles.inputIcon} />
+        <View style={styles.inputContainer}>
           <TextInput
             style={[styles.input, errors.studentId && styles.inputError]}
             placeholder="Student ID Number"
@@ -336,8 +304,7 @@ export default function RegisterScreen({ navigation }) {
       </View>
 
       <View style={styles.inputGroup}>
-        <View style={styles.inputWithIcon}>
-          <Icon name="phone-outline" size={24} color="#6c757d" style={styles.inputIcon} />
+        <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             placeholder="Phone Number (Optional)"
@@ -360,7 +327,6 @@ export default function RegisterScreen({ navigation }) {
 
       <View style={styles.inputGroup}>
         <View style={styles.passwordContainer}>
-          <Icon name="lock-outline" size={24} color="#6c757d" style={styles.inputIcon} />
           <TextInput
             style={[styles.input, styles.passwordInput, errors.password && styles.inputError]}
             placeholder="Create Password"
@@ -370,10 +336,12 @@ export default function RegisterScreen({ navigation }) {
             secureTextEntry={!showPassword}
           />
           <TouchableOpacity
-            style={styles.eyeIcon}
+            style={styles.eyeButton}
             onPress={() => setShowPassword(!showPassword)}
           >
-            <Icon name={showPassword ? "eye-off" : "eye"} size={24} color="#6c757d" />
+            <Text style={styles.eyeText}>
+              {showPassword ? 'HIDE' : 'SHOW'}
+            </Text>
           </TouchableOpacity>
         </View>
         {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
@@ -407,7 +375,6 @@ export default function RegisterScreen({ navigation }) {
 
       <View style={styles.inputGroup}>
         <View style={styles.passwordContainer}>
-          <Icon name="lock-check-outline" size={24} color="#6c757d" style={styles.inputIcon} />
           <TextInput
             style={[styles.input, styles.passwordInput, errors.confirmPassword && styles.inputError]}
             placeholder="Confirm Password"
@@ -417,10 +384,12 @@ export default function RegisterScreen({ navigation }) {
             secureTextEntry={!showConfirmPassword}
           />
           <TouchableOpacity
-            style={styles.eyeIcon}
+            style={styles.eyeButton}
             onPress={() => setShowConfirmPassword(!showConfirmPassword)}
           >
-            <Icon name={showConfirmPassword ? "eye-off" : "eye"} size={24} color="#6c757d" />
+            <Text style={styles.eyeText}>
+              {showConfirmPassword ? 'HIDE' : 'SHOW'}
+            </Text>
           </TouchableOpacity>
         </View>
         {errors.confirmPassword && (
@@ -429,7 +398,7 @@ export default function RegisterScreen({ navigation }) {
         {formData.password && formData.confirmPassword && 
          formData.password === formData.confirmPassword && (
           <View style={styles.successContainer}>
-            <Icon name="check-circle" size={16} color="#28a745" />
+            <Text style={styles.successCheck}>✓</Text>
             <Text style={styles.successText}>Passwords match</Text>
           </View>
         )}
@@ -446,7 +415,9 @@ export default function RegisterScreen({ navigation }) {
 
       <View style={styles.reviewContainer}>
         <View style={styles.reviewCard}>
-          <Icon name="account-check" size={32} color="#2E86AB" style={styles.reviewIcon} />
+          <View style={styles.reviewIcon}>
+            <Text style={styles.reviewIconText}>👤✅</Text>
+          </View>
           <Text style={styles.reviewTitle}>Account Summary</Text>
           
           <View style={styles.reviewItem}>
@@ -504,12 +475,16 @@ export default function RegisterScreen({ navigation }) {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
+      <TouchableOpacity 
+        style={[styles.registerButton, loading && styles.buttonDisabled]}
+        onPress={handleRegister}
+        disabled={loading}
+      >
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
           <>
-            <Icon name="check-circle" size={24} color="#fff" />
+            <Text style={styles.checkIcon}>✓</Text>
             <Text style={styles.registerButtonText}>Complete Registration</Text>
           </>
         )}
@@ -529,12 +504,14 @@ export default function RegisterScreen({ navigation }) {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Icon name="arrow-left" size={28} color="#fff" />
+            <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
           
           <View style={styles.headerContent}>
             <View style={styles.logoContainer}>
-              <Icon name="school" size={36} color="#fff" />
+              <View style={styles.logoCircle}>
+                <Text style={styles.logoLetter}>G</Text>
+              </View>
               <Text style={styles.logoText}>oneGondo.edu</Text>
             </View>
             <Text style={styles.headerSubtitle}>
@@ -560,7 +537,7 @@ export default function RegisterScreen({ navigation }) {
                 <View style={styles.navigationButtons}>
                   {activeStep > 0 && (
                     <TouchableOpacity style={styles.prevButton} onPress={prevStep}>
-                      <Icon name="arrow-left" size={20} color="#2E86AB" />
+                      <Text style={styles.prevButtonIcon}>←</Text>
                       <Text style={styles.prevButtonText}>Previous</Text>
                     </TouchableOpacity>
                   )}
@@ -571,7 +548,7 @@ export default function RegisterScreen({ navigation }) {
                     disabled={loading}
                   >
                     <Text style={styles.nextButtonText}>Continue</Text>
-                    <Icon name="arrow-right" size={20} color="#fff" />
+                    <Text style={styles.nextButtonIcon}>→</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -587,7 +564,7 @@ export default function RegisterScreen({ navigation }) {
                 onPress={() => navigation.navigate('Login')}
               >
                 <Text style={styles.loginLinkText}>Sign In Here</Text>
-                <Icon name="login" size={18} color="#2E86AB" />
+                <Text style={styles.loginLinkIcon}>→</Text>
               </TouchableOpacity>
             </View>
 
@@ -595,11 +572,11 @@ export default function RegisterScreen({ navigation }) {
             {!isKeyboardVisible && (
               <View style={styles.securityBadges}>
                 <View style={styles.badge}>
-                  <Icon name="shield-check" size={16} color="#28a745" />
+                  <Text style={styles.badgeIcon}>✓</Text>
                   <Text style={styles.badgeText}>256-bit Encryption</Text>
                 </View>
                 <View style={styles.badge}>
-                  <Icon name="lock-check" size={16} color="#28a745" />
+                  <Text style={styles.badgeIcon}>✓</Text>
                   <Text style={styles.badgeText}>Secure Registration</Text>
                 </View>
               </View>
@@ -628,6 +605,12 @@ const styles = StyleSheet.create({
     top: Platform.OS === 'ios' ? 50 : 40,
     left: 20,
     zIndex: 10,
+    padding: 8,
+  },
+  backButtonText: {
+    fontSize: 28,
+    color: '#fff',
+    fontWeight: 'bold',
   },
   headerContent: {
     alignItems: 'center',
@@ -638,11 +621,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
+  logoCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  logoLetter: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2E86AB',
+  },
   logoText: {
     fontSize: 28,
     fontWeight: '800',
     color: '#fff',
-    marginLeft: 12,
     letterSpacing: 0.5,
   },
   headerSubtitle: {
@@ -754,19 +750,12 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: 24,
   },
-  inputWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  inputIcon: {
-    position: 'absolute',
-    left: 16,
-    zIndex: 1,
+  inputContainer: {
+    position: 'relative',
   },
   input: {
-    flex: 1,
     backgroundColor: '#f8f9fa',
-    paddingHorizontal: 52,
+    paddingHorizontal: 16,
     paddingVertical: 18,
     borderRadius: 12,
     fontSize: 16,
@@ -781,20 +770,23 @@ const styles = StyleSheet.create({
     color: '#dc3545',
     fontSize: 13,
     marginTop: 6,
-    marginLeft: 16,
   },
   passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     position: 'relative',
   },
   passwordInput: {
-    paddingRight: 50,
+    paddingRight: 70,
   },
-  eyeIcon: {
+  eyeButton: {
     position: 'absolute',
     right: 16,
-    padding: 4,
+    top: 18,
+    zIndex: 1,
+  },
+  eyeText: {
+    fontSize: 12,
+    color: '#6c757d',
+    fontWeight: '600',
   },
   passwordStrengthContainer: {
     marginTop: 12,
@@ -829,12 +821,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 6,
-    marginLeft: 16,
+  },
+  successCheck: {
+    color: '#28a745',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 6,
   },
   successText: {
     color: '#28a745',
     fontSize: 13,
-    marginLeft: 6,
   },
   reviewContainer: {
     marginBottom: 24,
@@ -849,6 +845,9 @@ const styles = StyleSheet.create({
   },
   reviewIcon: {
     marginBottom: 12,
+  },
+  reviewIconText: {
+    fontSize: 32,
   },
   reviewTitle: {
     fontSize: 18,
@@ -920,11 +919,19 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  checkIcon: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginRight: 12,
+  },
   registerButtonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '700',
-    marginLeft: 12,
   },
   navigationButtons: {
     flexDirection: 'row',
@@ -940,11 +947,15 @@ const styles = StyleSheet.create({
     borderColor: '#2E86AB',
     backgroundColor: '#fff',
   },
+  prevButtonIcon: {
+    fontSize: 20,
+    color: '#2E86AB',
+    marginRight: 8,
+  },
   prevButtonText: {
     color: '#2E86AB',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
   },
   nextButton: {
     flexDirection: 'row',
@@ -964,6 +975,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginRight: 8,
+  },
+  nextButtonIcon: {
+    fontSize: 20,
+    color: '#fff',
   },
   loginPrompt: {
     flexDirection: 'row',
@@ -987,6 +1002,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginRight: 4,
   },
+  loginLinkIcon: {
+    fontSize: 18,
+    color: '#2E86AB',
+  },
   securityBadges: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -1002,10 +1021,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e9ecef',
   },
+  badgeIcon: {
+    color: '#28a745',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginRight: 6,
+  },
   badgeText: {
     fontSize: 12,
     color: '#495057',
-    marginLeft: 6,
     fontWeight: '500',
   },
 });

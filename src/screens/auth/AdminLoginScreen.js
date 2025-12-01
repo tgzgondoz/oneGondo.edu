@@ -13,8 +13,7 @@ import {
   ActivityIndicator,
   Dimensions,
   SafeAreaView,
-  Keyboard,
-  Image
+  Keyboard
 } from 'react-native';
 import { useAuth } from '../../components/AuthContext';
 
@@ -116,7 +115,7 @@ export default function AdminLoginScreen({ navigation }) {
     if (result.success) {
       setAttempts(0);
       Alert.alert(
-        '🔐 Access Granted',
+        'Access Granted',
         'Welcome to the Administration Dashboard',
         [{ text: 'Continue', onPress: () => {} }]
       );
@@ -128,7 +127,7 @@ export default function AdminLoginScreen({ navigation }) {
         setIsLocked(true);
         setLockTime(30);
         Alert.alert(
-          '🚨 Security Alert',
+          'Security Alert',
           'Too many failed attempts. Account locked for 30 seconds.',
           [{ text: 'OK' }]
         );
@@ -147,51 +146,6 @@ export default function AdminLoginScreen({ navigation }) {
     navigation.navigate('Login');
   };
 
-  const handleEmergencyAccess = () => {
-    Alert.alert(
-      'Emergency Access Protocol',
-      'This feature requires physical security key or two-factor authentication.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Use Security Key', onPress: () => {/* Handle emergency access */} }
-      ]
-    );
-  };
-
-  const handleForgotCredentials = () => {
-    Alert.alert(
-      'Recovery Protocol',
-      'Please contact system administrator for credential recovery.',
-      [
-        { text: 'Contact IT Support', onPress: () => {/* Open contact */} },
-        { text: 'Cancel', style: 'cancel' }
-      ]
-    );
-  };
-
-  // Simple Icon component
-  const Icon = ({ name, size, color, style }) => {
-    const iconMap = {
-      'shield': '🛡️',
-      'lock': '🔒',
-      'eye': '👁️',
-      'eye-off': '👁️‍🗨️',
-      'alert': '⚠️',
-      'arrow-left': '←',
-      'key': '🔑',
-      'admin': '👨‍💼',
-      'security': '🔐',
-      'timer': '⏱️',
-      'fingerprint': '🖐️',
-    };
-    
-    return (
-      <Text style={[{ fontSize: size, color }, style]}>
-        {iconMap[name] || '○'}
-      </Text>
-    );
-  };
-
   const AnimatedView = Animated.createAnimatedComponent(View);
 
   return (
@@ -207,7 +161,7 @@ export default function AdminLoginScreen({ navigation }) {
           {/* Security Header */}
           <View style={styles.securityHeader}>
             <View style={styles.securityBadge}>
-              <Icon name="shield" size={48} color="#fff" />
+              <Text style={styles.shieldIcon}>🛡️</Text>
               <Text style={styles.securityLevel}>SECURITY LEVEL 5</Text>
             </View>
             <Text style={styles.securityTitle}>Administration Portal</Text>
@@ -222,16 +176,16 @@ export default function AdminLoginScreen({ navigation }) {
           >
             {/* Warning Banner */}
             <View style={styles.warningBanner}>
-              <Icon name="alert" size={24} color="#fff" />
+              <Text style={styles.alertIcon}>⚠️</Text>
               <Text style={styles.warningText}>
-                ⚠️ UNAUTHORIZED ACCESS IS PROHIBITED AND MONITORED
+                UNAUTHORIZED ACCESS IS PROHIBITED AND MONITORED
               </Text>
             </View>
 
             {/* Login Form */}
             <View style={styles.formContainer}>
               <View style={styles.formHeader}>
-                <Icon name="admin" size={32} color="#dc3545" />
+                <Text style={styles.adminIcon}>👨‍💼</Text>
                 <Text style={styles.formTitle}>Admin Authentication</Text>
                 <Text style={styles.formSubtitle}>
                   Enter credentials with proper security clearance
@@ -241,7 +195,7 @@ export default function AdminLoginScreen({ navigation }) {
               {/* Username Field */}
               <View style={styles.inputGroup}>
                 <View style={styles.inputLabel}>
-                  <Icon name="security" size={20} color="#6c757d" />
+                  <Text style={styles.inputIcon}>🔐</Text>
                   <Text style={styles.labelText}>Administrator ID</Text>
                 </View>
                 <TextInput
@@ -267,7 +221,7 @@ export default function AdminLoginScreen({ navigation }) {
               {/* Password Field */}
               <View style={styles.inputGroup}>
                 <View style={styles.inputLabel}>
-                  <Icon name="key" size={20} color="#6c757d" />
+                  <Text style={styles.inputIcon}>🔑</Text>
                   <Text style={styles.labelText}>Security Password</Text>
                 </View>
                 <View style={styles.passwordContainer}>
@@ -286,15 +240,13 @@ export default function AdminLoginScreen({ navigation }) {
                     editable={!isLocked}
                   />
                   <TouchableOpacity
-                    style={styles.eyeIcon}
+                    style={styles.eyeButton}
                     onPress={() => setShowPassword(!showPassword)}
                     disabled={isLocked}
                   >
-                    <Icon 
-                      name={showPassword ? "eye-off" : "eye"} 
-                      size={24} 
-                      color="#6c757d" 
-                    />
+                    <Text style={styles.eyeText}>
+                      {showPassword ? 'HIDE' : 'SHOW'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -302,7 +254,7 @@ export default function AdminLoginScreen({ navigation }) {
               {/* Lock Timer */}
               {isLocked && (
                 <View style={styles.lockContainer}>
-                  <Icon name="timer" size={24} color="#ff9800" />
+                  <Text style={styles.timerIcon}>⏱️</Text>
                   <Text style={styles.lockText}>
                     Account locked for {lockTime} seconds
                   </Text>
@@ -324,7 +276,7 @@ export default function AdminLoginScreen({ navigation }) {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <Icon name="lock" size={22} color="#fff" />
+                    <Text style={styles.lockIcon}>🔒</Text>
                     <Text style={styles.loginButtonText}>
                       {isLocked ? 'ACCESS LOCKED' : 'AUTHENTICATE & LOGIN'}
                     </Text>
@@ -332,85 +284,22 @@ export default function AdminLoginScreen({ navigation }) {
                 )}
               </TouchableOpacity>
 
-              {/* Emergency Access */}
-              <TouchableOpacity 
-                style={styles.emergencyButton}
-                onPress={handleEmergencyAccess}
-              >
-                <Icon name="fingerprint" size={20} color="#fff" />
-                <Text style={styles.emergencyButtonText}>
-                  Emergency Access Protocol
-                </Text>
-              </TouchableOpacity>
-
-              {/* Forgot Credentials */}
-              <TouchableOpacity 
-                style={styles.forgotButton}
-                onPress={handleForgotCredentials}
-              >
-                <Text style={styles.forgotButtonText}>
-                  🔑 Lost Admin Credentials?
-                </Text>
-              </TouchableOpacity>
-
-              {/* Two-Factor Note */}
-              <View style={styles.twoFactorNote}>
-                <Text style={styles.twoFactorText}>
-                  ⚡ Note: This system requires two-factor authentication for all admin access.
-                </Text>
-              </View>
-
               {/* Back to Student Login */}
               <TouchableOpacity 
                 style={styles.backButton}
                 onPress={goBackToStudentLogin}
               >
-                <Icon name="arrow-left" size={20} color="#2E86AB" />
+                <Text style={styles.arrowIcon}>←</Text>
                 <Text style={styles.backButtonText}>
                   Return to Student Portal
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Security Information */}
-            <View style={styles.securityInfo}>
-              <Text style={styles.securityInfoTitle}>🔒 Security Protocols</Text>
-              <View style={styles.protocolList}>
-                <View style={styles.protocolItem}>
-                  <Text style={styles.protocolIcon}>✅</Text>
-                  <Text style={styles.protocolText}>256-bit AES Encryption</Text>
-                </View>
-                <View style={styles.protocolItem}>
-                  <Text style={styles.protocolIcon}>✅</Text>
-                  <Text style={styles.protocolText}>IP Address Tracking</Text>
-                </View>
-                <View style={styles.protocolItem}>
-                  <Text style={styles.protocolIcon}>✅</Text>
-                  <Text style={styles.protocolText}>Session Timeout: 15min</Text>
-                </View>
-                <View style={styles.protocolItem}>
-                  <Text style={styles.protocolIcon}>✅</Text>
-                  <Text style={styles.protocolText}>All Access Logged</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Developer Notes */}
-            <View style={styles.devNotes}>
-              <Text style={styles.devNotesTitle}>🛠️ Development Notes:</Text>
-              <Text style={styles.devNotesText}>
-                • Default credentials: admin / admin{'\n'}
-                • Change in production environment{'\n'}
-                • Implement proper authentication{'\n'}
-                • Enable two-factor authentication{'\n'}
-                • Log all admin access attempts
-              </Text>
-            </View>
-
             {/* Footer */}
             <View style={styles.footer}>
               <Text style={styles.footerText}>
-                🚨 oneGondo.edu Administration System v2.0
+                oneGondo.edu Administration System v2.0
               </Text>
               <Text style={styles.footerSubtext}>
                 All access attempts are logged and monitored 24/7
@@ -446,6 +335,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  shieldIcon: {
+    fontSize: 48,
+  },
   securityLevel: {
     color: '#dc3545',
     fontSize: 12,
@@ -478,6 +370,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ff6b6b',
   },
+  alertIcon: {
+    fontSize: 24,
+  },
   warningText: {
     color: '#fff',
     fontSize: 13,
@@ -502,6 +397,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
+  adminIcon: {
+    fontSize: 32,
+  },
   formTitle: {
     fontSize: 24,
     fontWeight: '700',
@@ -522,11 +420,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
+  inputIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
   labelText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#ddd',
-    marginLeft: 8,
   },
   input: {
     backgroundColor: '#2a2a2a',
@@ -545,19 +446,24 @@ const styles = StyleSheet.create({
     color: '#ff9800',
     fontSize: 12,
     marginTop: 6,
-    marginLeft: 8,
     fontWeight: '500',
   },
   passwordContainer: {
     position: 'relative',
   },
   passwordInput: {
-    paddingRight: 50,
+    paddingRight: 70,
   },
-  eyeIcon: {
+  eyeButton: {
     position: 'absolute',
     right: 16,
     top: 18,
+    zIndex: 1,
+  },
+  eyeText: {
+    fontSize: 12,
+    color: '#6c757d',
+    fontWeight: '600',
   },
   lockContainer: {
     flexDirection: 'row',
@@ -569,11 +475,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ff9800',
   },
+  timerIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
   lockText: {
     color: '#ff9800',
     fontSize: 14,
     fontWeight: '600',
-    marginLeft: 12,
   },
   loginButton: {
     flexDirection: 'row',
@@ -595,49 +504,14 @@ const styles = StyleSheet.create({
   buttonLocked: {
     backgroundColor: '#666',
   },
+  lockIcon: {
+    fontSize: 22,
+    marginRight: 12,
+  },
   loginButtonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '700',
-    marginLeft: 12,
-  },
-  emergencyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#17a2b8',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  emergencyButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
-    marginLeft: 10,
-  },
-  forgotButton: {
-    alignItems: 'center',
-    padding: 12,
-    marginBottom: 20,
-  },
-  forgotButtonText: {
-    color: '#17a2b8',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  twoFactorNote: {
-    backgroundColor: '#1e3a5f',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#2d4d7a',
-  },
-  twoFactorText: {
-    color: '#64b5f6',
-    fontSize: 13,
-    fontWeight: '500',
   },
   backButton: {
     flexDirection: 'row',
@@ -645,59 +519,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 16,
   },
+  arrowIcon: {
+    fontSize: 20,
+    color: '#2E86AB',
+    marginRight: 8,
+  },
   backButtonText: {
     color: '#2E86AB',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
-  },
-  securityInfo: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  securityInfoTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 16,
-  },
-  protocolList: {
-    gap: 12,
-  },
-  protocolItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  protocolIcon: {
-    fontSize: 16,
-    marginRight: 12,
-  },
-  protocolText: {
-    color: '#aaa',
-    fontSize: 14,
-  },
-  devNotes: {
-    backgroundColor: '#1a2a1a',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#2a8a2a',
-  },
-  devNotesTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#4caf50',
-    marginBottom: 12,
-  },
-  devNotesText: {
-    color: '#8bc34a',
-    fontSize: 13,
-    lineHeight: 20,
   },
   footer: {
     alignItems: 'center',

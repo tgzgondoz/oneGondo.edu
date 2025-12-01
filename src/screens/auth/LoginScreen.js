@@ -135,35 +135,6 @@ export default function LoginScreen({ navigation }) {
 
   const AnimatedView = Animated.createAnimatedComponent(View);
 
-  // Simple icon component if react-native-vector-icons is not installed
-  const Icon = ({ name, size, color, style }) => {
-    const iconMap = {
-      'email-outline': '✉️',
-      'lock-outline': '🔒',
-      'eye': '👁️',
-      'eye-off': '👁️‍🗨️',
-      'alert-circle': '⚠️',
-      'login': '🚀',
-      'checkbox-blank-outline': '☐',
-      'fingerprint': '🖐️',
-      'google': 'G',
-      'microsoft': 'M',
-      'apple': 'A',
-      'arrow-right': '→',
-      'shield-account': '👨‍💼',
-      'chevron-right': '›',
-      'shield-check': '🛡️',
-      'headset': '🎧',
-      'school': '🏫',
-    };
-
-    return (
-      <Text style={[{ fontSize: size, color }, style]}>
-        {iconMap[name] || '○'}
-      </Text>
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
@@ -171,12 +142,14 @@ export default function LoginScreen({ navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        {/* Header with gradient simulation */}
+        {/* Header */}
         <View style={styles.headerGradient}>
           {!isKeyboardVisible && (
             <View style={styles.header}>
               <View style={styles.logoContainer}>
-                <Icon name="school" size={40} color="#fff" />
+                <View style={styles.logoCircle}>
+                  <Text style={styles.logoLetter}>G</Text>
+                </View>
                 <Text style={styles.logoText}>oneGondo.edu</Text>
               </View>
               <Text style={styles.headerSubtitle}>
@@ -208,7 +181,7 @@ export default function LoginScreen({ navigation }) {
 
             <View style={styles.formContainer}>
               <Text style={styles.title}>
-                <Icon name="login" size={28} color="#2E86AB" /> Student Portal
+                Student Portal
               </Text>
               
               <Text style={styles.formSubtitle}>
@@ -218,7 +191,6 @@ export default function LoginScreen({ navigation }) {
               {/* Email Field */}
               <View style={styles.inputContainer}>
                 <View style={styles.inputLabel}>
-                  <Icon name="email-outline" size={20} color="#6c757d" />
                   <Text style={styles.labelText}>Student Email</Text>
                 </View>
                 <TextInput
@@ -241,16 +213,15 @@ export default function LoginScreen({ navigation }) {
                 />
                 {emailError ? (
                   <View style={styles.errorContainer}>
-                    <Icon name="alert-circle" size={16} color="#dc3545" />
+                    <Text style={styles.errorText}>!</Text>
                     <Text style={styles.errorText}>{emailError}</Text>
                   </View>
                 ) : null}
               </View>
 
-              {/* Password Field - Fixed version */}
+              {/* Password Field */}
               <View style={styles.inputContainer}>
                 <View style={styles.inputLabel}>
-                  <Icon name="lock-outline" size={20} color="#6c757d" />
                   <Text style={styles.labelText}>Password</Text>
                 </View>
                 <View style={styles.passwordWrapper}>
@@ -279,17 +250,15 @@ export default function LoginScreen({ navigation }) {
                       style={styles.eyeButton}
                       activeOpacity={0.6}
                     >
-                      <Icon 
-                        name={showPassword ? "eye-off" : "eye"} 
-                        size={24} 
-                        color="#6c757d" 
-                      />
+                      <Text style={styles.eyeIcon}>
+                        {showPassword ? 'HIDE' : 'SHOW'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
                 {passwordError ? (
                   <View style={styles.errorContainer}>
-                    <Icon name="alert-circle" size={16} color="#dc3545" />
+                    <Text style={styles.errorText}>!</Text>
                     <Text style={styles.errorText}>{passwordError}</Text>
                   </View>
                 ) : null}
@@ -298,7 +267,7 @@ export default function LoginScreen({ navigation }) {
               {/* Remember Me & Forgot Password */}
               <View style={styles.rowContainer}>
                 <TouchableOpacity style={styles.rememberMe}>
-                  <Icon name="checkbox-blank-outline" size={20} color="#6c757d" />
+                  <View style={styles.checkbox} />
                   <Text style={styles.rememberMeText}>Remember me</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleForgotPassword}>
@@ -323,7 +292,6 @@ export default function LoginScreen({ navigation }) {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <Icon name="login" size={22} color="#fff" />
                     <Text style={styles.buttonText}>Sign In to Dashboard</Text>
                   </>
                 )}
@@ -359,7 +327,7 @@ export default function LoginScreen({ navigation }) {
                   onPress={() => navigation.navigate('Register')}
                 >
                   <Text style={styles.registerLink}>Create Student Account</Text>
-                  <Icon name="arrow-right" size={18} color="#2E86AB" />
+                  <Text style={styles.arrowIcon}>→</Text>
                 </TouchableOpacity>
               </View>
 
@@ -368,11 +336,11 @@ export default function LoginScreen({ navigation }) {
                 style={styles.adminAccessContainer}
                 onPress={() => navigation.navigate('AdminLogin')}
               >
-                <Icon name="shield-account" size={20} color="#6c757d" />
+                <Text style={styles.adminIcon}>🔒</Text>
                 <Text style={styles.adminAccessText}>
                   Faculty or Administrator Access
                 </Text>
-                <Icon name="chevron-right" size={20} color="#6c757d" />
+                <Text style={styles.chevronIcon}>›</Text>
               </TouchableOpacity>
             </View>
 
@@ -380,12 +348,10 @@ export default function LoginScreen({ navigation }) {
             {!isKeyboardVisible && (
               <View style={styles.footer}>
                 <Text style={styles.footerText}>
-                  <Icon name="shield-check" size={16} color="#28a745" /> 
-                  {' '}Secure & Encrypted
+                  Secure & Encrypted
                 </Text>
                 <Text style={styles.contactText}>
-                  <Icon name="headset" size={16} color="#2E86AB" />
-                  {' '}Support: 24/7 • support@onegondo.edu
+                  Support: 24/7 • support@onegondo.edu
                 </Text>
                 <Text style={styles.versionText}>
                   Version 2.1.4 • © 2024 oneGondo.edu
@@ -420,11 +386,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
+  logoCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  logoLetter: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2E86AB',
+  },
   logoText: {
     fontSize: 32,
     fontWeight: '800',
     color: '#fff',
-    marginLeft: 12,
     letterSpacing: 0.5,
   },
   headerSubtitle: {
@@ -472,8 +451,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1a1a1a',
     marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   formSubtitle: {
     fontSize: 15,
@@ -493,7 +470,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#495057',
-    marginLeft: 8,
   },
   input: {
     backgroundColor: '#f8f9fa',
@@ -515,7 +491,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   passwordInput: {
-    paddingRight: 50,
+    paddingRight: 70,
   },
   eyeIconContainer: {
     position: 'absolute',
@@ -528,6 +504,11 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     padding: 8,
+  },
+  eyeIcon: {
+    fontSize: 12,
+    color: '#6c757d',
+    fontWeight: '600',
   },
   errorContainer: {
     flexDirection: 'row',
@@ -545,6 +526,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#6c757d',
+    marginRight: 8,
+  },
   rememberMe: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -552,7 +541,6 @@ const styles = StyleSheet.create({
   rememberMeText: {
     color: '#495057',
     fontSize: 14,
-    marginLeft: 8,
   },
   forgotPasswordText: {
     color: '#2E86AB',
@@ -582,7 +570,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '700',
-    marginLeft: 10,
   },
   dividerContainer: {
     flexDirection: 'row',
@@ -648,6 +635,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginRight: 6,
   },
+  arrowIcon: {
+    fontSize: 18,
+    color: '#2E86AB',
+  },
   adminAccessContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -658,11 +649,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e9ecef',
   },
+  adminIcon: {
+    fontSize: 20,
+  },
   adminAccessText: {
     color: '#495057',
     fontSize: 14,
     fontWeight: '600',
     marginHorizontal: 10,
+  },
+  chevronIcon: {
+    fontSize: 20,
+    color: '#6c757d',
   },
   footer: {
     marginTop: 30,
@@ -673,19 +671,16 @@ const styles = StyleSheet.create({
   },
   footerText: {
     textAlign: 'center',
-    color: '#6c757d',
+    color: '#28a745',
     fontSize: 13,
     marginBottom: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
+    fontWeight: '600',
   },
   contactText: {
     textAlign: 'center',
     color: '#495057',
     fontSize: 13,
     marginBottom: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   versionText: {
     textAlign: 'center',
