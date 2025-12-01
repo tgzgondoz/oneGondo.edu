@@ -133,6 +133,10 @@ export default function LoginScreen({ navigation }) {
     navigation.navigate('ForgotPassword');
   };
 
+  const handleAdminAccess = () => {
+    navigation.navigate('AdminLogin');
+  };
+
   const AnimatedView = Animated.createAnimatedComponent(View);
 
   return (
@@ -297,26 +301,6 @@ export default function LoginScreen({ navigation }) {
                 )}
               </TouchableOpacity>
 
-              {/* Divider */}
-              <View style={styles.dividerContainer}>
-                <View style={styles.divider} />
-                <Text style={styles.dividerText}>or continue with</Text>
-                <View style={styles.divider} />
-              </View>
-
-              {/* Alternative Login Options */}
-              <View style={styles.alternativeLoginContainer}>
-                <TouchableOpacity style={styles.socialButton}>
-                  <Text style={[styles.socialIcon, { color: '#DB4437' }]}>G</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.socialButton}>
-                  <Text style={[styles.socialIcon, { color: '#00A4EF' }]}>M</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.socialButton}>
-                  <Text style={[styles.socialIcon, { color: '#000' }]}>A</Text>
-                </TouchableOpacity>
-              </View>
-
               {/* Register Link */}
               <View style={styles.registerContainer}>
                 <Text style={styles.registerText}>
@@ -331,15 +315,23 @@ export default function LoginScreen({ navigation }) {
                 </TouchableOpacity>
               </View>
 
-              {/* Admin Access */}
+              {/* Admin Access Button */}
               <TouchableOpacity 
-                style={styles.adminAccessContainer}
-                onPress={() => navigation.navigate('AdminLogin')}
+                style={styles.adminAccessButton}
+                onPress={handleAdminAccess}
+                activeOpacity={0.7}
               >
-                <Text style={styles.adminIcon}>🔒</Text>
-                <Text style={styles.adminAccessText}>
-                  Faculty or Administrator Access
-                </Text>
+                <View style={styles.adminIconContainer}>
+                  <Text style={styles.adminIcon}>🔒</Text>
+                </View>
+                <View style={styles.adminTextContainer}>
+                  <Text style={styles.adminAccessText}>
+                    Faculty or Administrator Access
+                  </Text>
+                  <Text style={styles.adminSubtext}>
+                    Click here for staff login
+                  </Text>
+                </View>
                 <Text style={styles.chevronIcon}>›</Text>
               </TouchableOpacity>
             </View>
@@ -571,46 +563,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#e9ecef',
-  },
-  dividerText: {
-    paddingHorizontal: 16,
-    color: '#6c757d',
-    fontSize: 14,
-  },
-  alternativeLoginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  socialButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  socialIcon: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
   registerContainer: {
     alignItems: 'center',
     backgroundColor: '#f0f9ff',
@@ -639,28 +591,44 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#2E86AB',
   },
-  adminAccessContainer: {
+  adminAccessButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: '#f8f9fa',
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e9ecef',
   },
+  adminIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e9ecef',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
   adminIcon: {
     fontSize: 20,
+  },
+  adminTextContainer: {
+    flex: 1,
   },
   adminAccessText: {
     color: '#495057',
     fontSize: 14,
     fontWeight: '600',
-    marginHorizontal: 10,
+    marginBottom: 2,
+  },
+  adminSubtext: {
+    color: '#6c757d',
+    fontSize: 12,
   },
   chevronIcon: {
-    fontSize: 20,
+    fontSize: 24,
     color: '#6c757d',
+    marginLeft: 8,
   },
   footer: {
     marginTop: 30,
