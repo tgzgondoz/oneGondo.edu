@@ -43,6 +43,10 @@ export function AuthProvider({ children }) {
   const [initializing, setInitializing] = useState(true);
   const auth = firebase.auth();
 
+  // Admin credentials for demo
+  const ADMIN_EMAIL = 'admin@onegondo.edu';
+  const ADMIN_PASSWORD = 'admin123';
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       try {
@@ -75,6 +79,11 @@ export function AuthProvider({ children }) {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
               };
               
+              // If it's admin email, set role to admin
+              if (firebaseUser.email === ADMIN_EMAIL) {
+                userInfo.role = 'admin';
+              }
+              
               await db.collection('users').doc(firebaseUser.uid).set(userInfo);
               setUser(userInfo);
               await SecureStore.setItemAsync('user', JSON.stringify(userInfo));
@@ -87,7 +96,7 @@ export function AuthProvider({ children }) {
                 id: firebaseUser.uid,
                 email: firebaseUser.email,
                 name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
-                role: 'student',
+                role: firebaseUser.email === ADMIN_EMAIL ? 'admin' : 'student',
                 avatar: firebaseUser.email.charAt(0).toUpperCase()
               };
               setUser(fallbackUser);
@@ -145,7 +154,7 @@ export function AuthProvider({ children }) {
           const newUserData = {
             email: firebaseUser.email,
             name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
-            role: 'student',
+            role: firebaseUser.email === ADMIN_EMAIL ? 'admin' : 'student',
             avatar: firebaseUser.email.charAt(0).toUpperCase(),
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           };
@@ -168,6 +177,12 @@ export function AuthProvider({ children }) {
 
         const userData = userDoc.data();
         
+        // Check if user is trying to login as admin but doesn't have admin role
+        if (loginType === 'admin' && userData.role !== 'admin') {
+          await auth.signOut();
+          throw new Error('Admin access required. Please use admin credentials.');
+        }
+
         const userInfo = {
           id: firebaseUser.uid,
           email: firebaseUser.email,
@@ -189,9 +204,15 @@ export function AuthProvider({ children }) {
             id: firebaseUser.uid,
             email: firebaseUser.email,
             name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
-            role: 'student',
+            role: firebaseUser.email === ADMIN_EMAIL ? 'admin' : 'student',
             avatar: firebaseUser.email.charAt(0).toUpperCase()
           };
+          
+          // Check admin access for fallback user
+          if (loginType === 'admin' && fallbackUser.role !== 'admin') {
+            await auth.signOut();
+            throw new Error('Admin access required. Please use admin credentials.');
+          }
           
           setUser(fallbackUser);
           await SecureStore.setItemAsync('user', JSON.stringify(fallbackUser));
@@ -212,10 +233,50 @@ export function AuthProvider({ children }) {
           errorMessage = 'This account has been disabled';
           break;
         case 'auth/user-not-found':
-          errorMessage = 'No account found with this email';
+          // Check if trying to login as admin with default credentials
+          if (email === 'admin' && password === 'admin') {
+            // Auto-create admin user if doesn't exist
+            try {
+              console.log('Creating admin user with default credentials...');
+              const userCredential = await auth.createUserWithEmailAndPassword(ADMIN_EMAIL, ADMIN_PASSWORD);
+              const firebaseUser = userCredential.user;
+              
+              const adminData = {
+                email: ADMIN_EMAIL,
+                name: 'Administrator',
+                role: 'admin',
+                avatar: 'A',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              };
+              
+              try {
+                await db.collection('users').doc(firebaseUser.uid).set(adminData);
+              } catch (writeError) {
+                console.warn('Could not write admin document to Firestore');
+              }
+              
+              const adminInfo = {
+                id: firebaseUser.uid,
+                ...adminData
+              };
+              
+              setUser(adminInfo);
+              await SecureStore.setItemAsync('user', JSON.stringify(adminInfo));
+              return { success: true, user: adminInfo };
+            } catch (createError) {
+              errorMessage = 'Could not create admin account. Please try again.';
+            }
+          } else {
+            errorMessage = 'No account found with this email';
+          }
           break;
         case 'auth/wrong-password':
-          errorMessage = 'Incorrect password';
+          // Check if trying to login as admin with simple password
+          if (email === ADMIN_EMAIL && password === 'admin') {
+            errorMessage = 'For security, please use the full admin password';
+          } else {
+            errorMessage = 'Incorrect password';
+          }
           break;
         case 'auth/invalid-credential':
           errorMessage = 'Invalid login credentials. Please check your email and password.';
@@ -323,6 +384,11 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Helper function to check if user is admin
+  const isAdmin = () => {
+    return user?.role === 'admin';
+  };
+
   const value = {
     user,
     loading,
@@ -330,6 +396,7 @@ export function AuthProvider({ children }) {
     isLoaded: !loading && !initializing,
     userId: user?.id,
     sessionId: user?.id ? 'session_' + user.id : null,
+    isAdmin: isAdmin(),
     signIn,
     signUp,
     signOut: signOutUser,

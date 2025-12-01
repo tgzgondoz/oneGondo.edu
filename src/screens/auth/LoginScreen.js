@@ -32,6 +32,122 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  const handleAdminLogin = () => {
+    // Show admin login options
+    Alert.alert(
+      'Admin Access',
+      'Select login method:',
+      [
+        { 
+          text: 'Demo Admin (Auto-login)', 
+          onPress: () => handleAdminAutoLogin(true)
+        },
+        { 
+          text: 'Enter Admin Credentials', 
+          onPress: () => handleAdminManualLogin()
+        },
+        { 
+          text: 'Cancel', 
+          style: 'cancel' 
+        }
+      ]
+    );
+  };
+
+  const handleAdminAutoLogin = async (showAlert = true) => {
+    // For demo/admin access with auto-credentials
+    const adminEmail = 'admin@onegondo.edu';
+    const adminPassword = 'admin123';
+    
+    if (showAlert) {
+      Alert.alert('Demo Admin', 'Logging in with demo admin credentials...');
+    }
+    
+    const result = await signIn(adminEmail, adminPassword, 'admin');
+    
+    if (result.success) {
+      Alert.alert('Success', 'Welcome Administrator!');
+    } else {
+      // Try to create admin account if it doesn't exist
+      Alert.alert('Setting up Admin', 'Creating admin account...');
+      const createResult = await signIn('admin', 'admin', 'admin');
+      if (!createResult.success) {
+        Alert.alert('Admin Access', 
+          'Please ensure admin@onegondo.edu is created in Firebase Authentication with password: admin123\n\nAlso create admin user document in Firestore with role: "admin"',
+          [{ text: 'OK' }]
+        );
+      }
+    }
+  };
+
+  const handleAdminManualLogin = () => {
+    // Show input for manual admin credentials
+    Alert.prompt(
+      'Admin Login',
+      'Enter admin email:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Next',
+          onPress: (adminEmail) => {
+            if (adminEmail) {
+              Alert.prompt(
+                'Admin Password',
+                'Enter admin password:',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Login',
+                    onPress: async (adminPassword) => {
+                      if (adminPassword) {
+                        const result = await signIn(adminEmail, adminPassword, 'admin');
+                        if (result.success) {
+                          Alert.alert('Success', 'Welcome Administrator!');
+                        } else {
+                          Alert.alert('Admin Login Failed', result.error || 'Invalid admin credentials');
+                        }
+                      }
+                    }
+                  }
+                ],
+                'secure-text'
+              );
+            }
+          }
+        }
+      ],
+      'plain-text',
+      'admin@onegondo.edu'
+    );
+  };
+
+  // Quick login for testing (remove in production)
+  const handleQuickTestLogin = () => {
+    Alert.alert(
+      'Quick Test Login',
+      'Select test user:',
+      [
+        {
+          text: 'Test Student',
+          onPress: async () => {
+            setEmail('student@test.com');
+            setPassword('test123');
+            // Auto-login after a short delay
+            setTimeout(() => handleLogin(), 500);
+          }
+        },
+        {
+          text: 'Demo Admin',
+          onPress: () => handleAdminAutoLogin(false)
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        }
+      ]
+    );
+  };
+
   return (
     <KeyboardAvoidingView 
       style={styles.container}
@@ -43,6 +159,14 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.logoContainer}>
             <Text style={styles.logoText}>oneGondo.edu</Text>
             <Text style={styles.subtitle}>Mobile Learning Platform</Text>
+            
+            {/* Quick test button (remove in production) */}
+            <TouchableOpacity 
+              style={styles.testButton}
+              onPress={handleQuickTestLogin}
+            >
+              <Text style={styles.testButtonText}>Quick Test Login</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Form Section */}
@@ -100,6 +224,18 @@ export default function LoginScreen({ navigation }) {
               </Text>
             </View>
 
+            {/* Admin Access Link */}
+            <TouchableOpacity 
+              style={styles.adminLinkContainer}
+              onPress={handleAdminLogin}
+            >
+              <Text style={styles.adminLinkText}>
+                <Text style={styles.adminIcon}>⚙️ </Text>
+                Administrator Access
+                <Text style={styles.adminIcon}> ⚙️</Text>
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.forgotPassword}>
               <Text style={styles.forgotPasswordText}>
                 Forgot Password?
@@ -114,6 +250,9 @@ export default function LoginScreen({ navigation }) {
               <Text style={styles.contactText}>
                 support@onegondo.edu
               </Text>
+            </Text>
+            <Text style={styles.footerNote}>
+              For demo: Use 'student@test.com' / 'test123' or admin credentials
             </Text>
           </View>
         </View>
@@ -138,8 +277,8 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: 64,
-    marginBottom: 48,
+    marginTop: 40,
+    marginBottom: 32,
   },
   logoText: {
     fontSize: 36,
@@ -150,6 +289,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#6c757d',
     marginTop: 8,
+    marginBottom: 16,
+  },
+  testButton: {
+    backgroundColor: '#6c757d',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 8,
+  },
+  testButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   formContainer: {
     flex: 1,
@@ -183,6 +335,11 @@ const styles = StyleSheet.create({
   },
   studentButton: {
     backgroundColor: '#28a745', // Green for student
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -210,6 +367,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
+  adminLinkContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 10,
+    padding: 12,
+    backgroundColor: '#f8d7da',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f5c6cb',
+  },
+  adminLinkText: {
+    color: '#721c24',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  adminIcon: {
+    fontSize: 16,
+  },
   forgotPassword: {
     alignItems: 'center',
     marginTop: 16,
@@ -222,10 +397,19 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: '#e9ecef',
+    alignItems: 'center',
   },
   footerText: {
     textAlign: 'center',
     color: '#6c757d',
+    fontSize: 14,
+  },
+  footerNote: {
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 12,
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   contactText: {
     color: '#2E86AB',
