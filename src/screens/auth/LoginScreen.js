@@ -23,10 +23,10 @@ export default function LoginScreen({ navigation }) {
       return;
     }
 
-    const result = await signIn(email, password, 'admin');
+    const result = await signIn(email, password, 'student');
     
     if (result.success) {
-      Alert.alert('Success', 'Welcome back, Administrator!');
+      Alert.alert('Success', 'Welcome back!');
     } else {
       Alert.alert('Error', result.error || 'Login failed');
     }
@@ -42,18 +42,18 @@ export default function LoginScreen({ navigation }) {
           {/* Logo Section */}
           <View style={styles.logoContainer}>
             <Text style={styles.logoText}>oneGondo.edu</Text>
-            <Text style={styles.subtitle}>Administrator Portal</Text>
+            <Text style={styles.subtitle}>Mobile Learning Platform</Text>
           </View>
 
           {/* Form Section */}
           <View style={styles.formContainer}>
-            <Text style={styles.title}>Admin Login</Text>
-            <Text style={styles.formSubtitle}>Access your dashboard</Text>
+            <Text style={styles.title}>Student Login</Text>
+            <Text style={styles.formSubtitle}>Sign in to continue your learning</Text>
 
             {/* Email and Password Fields */}
             <TextInput
               style={styles.input}
-              placeholder="Admin Email"
+              placeholder="Student Email"
               placeholderTextColor="#6c757d"
               value={email}
               onChangeText={setEmail}
@@ -76,21 +76,27 @@ export default function LoginScreen({ navigation }) {
             <TouchableOpacity 
               style={[
                 styles.button, 
-                styles.adminButton,
+                styles.studentButton,
                 loading && styles.buttonDisabled
               ]}
               onPress={handleLogin}
               disabled={loading}
             >
               <Text style={styles.buttonText}>
-                {loading ? 'Signing In...' : 'Admin Sign In'}
+                {loading ? 'Signing In...' : 'Sign In'}
               </Text>
             </TouchableOpacity>
 
-            {/* Demo notice */}
-            <View style={styles.demoNotice}>
-              <Text style={styles.demoNoticeText}>
-                Use admin credentials to access the dashboard
+            {/* Register Link */}
+            <View style={styles.registerContainer}>
+              <Text style={styles.registerText}>
+                New to oneGondo.edu?{' '}
+                <Text 
+                  style={styles.registerLink}
+                  onPress={() => navigation.navigate('Register')}
+                >
+                  Create an account
+                </Text>
               </Text>
             </View>
 
@@ -175,8 +181,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 16,
   },
-  adminButton: {
-    backgroundColor: '#dc3545', // Red for admin
+  studentButton: {
+    backgroundColor: '#28a745', // Green for student
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -186,18 +192,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  demoNotice: {
-    backgroundColor: '#d4edda',
-    padding: 12,
-    borderRadius: 8,
+  registerContainer: {
+    alignItems: 'center',
     marginVertical: 12,
+    padding: 12,
+    backgroundColor: '#e8f4fc',
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#c3e6cb',
+    borderColor: '#d1e8ff',
   },
-  demoNoticeText: {
-    color: '#155724',
-    fontSize: 12,
-    textAlign: 'center',
+  registerText: {
+    color: '#495057',
+    fontSize: 14,
+  },
+  registerLink: {
+    color: '#2E86AB',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   forgotPassword: {
     alignItems: 'center',
