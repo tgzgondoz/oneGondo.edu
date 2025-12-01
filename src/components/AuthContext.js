@@ -43,6 +43,10 @@ export function AuthProvider({ children }) {
   const [initializing, setInitializing] = useState(true);
   const auth = firebase.auth();
 
+  // Hard-coded admin credentials
+  const ADMIN_USERNAME = 'admin';
+  const ADMIN_PASSWORD = 'admin';
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       try {
@@ -251,6 +255,59 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Hard-coded admin login function
+  const adminSignIn = async (username, password) => {
+    setLoading(true);
+    try {
+      console.log('Attempting admin login with username:', username);
+      
+      // Validate input
+      if (!username || !password) {
+        throw new Error('Please enter both username and password');
+      }
+
+      // Check hard-coded admin credentials
+      if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+        console.log('Hard-coded admin credentials verified');
+        
+        // Create admin user object
+        const adminUser = {
+          id: 'admin_user_id',
+          email: 'admin@onegondo.edu',
+          name: 'Administrator',
+          role: 'admin',
+          avatar: 'A',
+          username: ADMIN_USERNAME,
+          isHardcodedAdmin: true // Flag to identify hard-coded admin
+        };
+        
+        // Set user in state
+        setUser(adminUser);
+        
+        // Store in SecureStore
+        await SecureStore.setItemAsync('user', JSON.stringify(adminUser));
+        
+        console.log('Admin login successful:', adminUser);
+        return { success: true, user: adminUser };
+      } else {
+        throw new Error('Invalid admin credentials');
+      }
+    } catch (error) {
+      console.error('Admin sign in error:', error);
+      let errorMessage = 'Admin login failed';
+      
+      if (error.message === 'Invalid admin credentials') {
+        errorMessage = 'Invalid admin credentials';
+      } else {
+        errorMessage = error.message || 'Admin login failed. Please try again.';
+      }
+      
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signUp = async (email, password, fullName, role = 'student') => {
     setLoading(true);
     try {
@@ -326,7 +383,11 @@ export function AuthProvider({ children }) {
 
   const signOutUser = async () => {
     try {
-      await auth.signOut();
+      // Only sign out from Firebase if it's a Firebase user
+      if (user && !user.isHardcodedAdmin) {
+        await auth.signOut();
+      }
+      
       setUser(null);
       await SecureStore.deleteItemAsync('user');
       console.log('User signed out successfully');
@@ -349,11 +410,16 @@ export function AuthProvider({ children }) {
     sessionId: user?.id ? 'session_' + user.id : null,
     isAdmin: isAdmin(),
     signIn,
+    adminSignIn, // Added hard-coded admin login
     signUp,
     signOut: signOutUser,
     login: signIn,
     logout: signOutUser,
     getToken: async () => {
+      // For hard-coded admin, return a mock token
+      if (user?.isHardcodedAdmin) {
+        return 'hardcoded_admin_token';
+      }
       return user ? await auth.currentUser?.getIdToken() : null;
     }
   };

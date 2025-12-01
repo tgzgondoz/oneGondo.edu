@@ -13,21 +13,22 @@ import {
 import { useAuth } from '../../components/AuthContext';
 
 export default function AdminLoginScreen({ navigation }) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const { signIn, loading } = useAuth();
+  const { adminSignIn, loading } = useAuth(); // Use adminSignIn from AuthContext
 
   const handleAdminLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
+    if (!username || !password) {
+      Alert.alert('Error', 'Please enter both username and password');
       return;
     }
 
-    const result = await signIn(email, password, 'admin');
+    const result = await adminSignIn(username, password);
     
     if (result.success) {
       Alert.alert('Success', 'Welcome Administrator!');
       // Navigation will be handled automatically by auth state change
+      // Your AppNavigator will detect the admin user and show AdminNavigator
     } else {
       Alert.alert('Admin Login Failed', result.error || 'Invalid admin credentials');
     }
@@ -57,15 +58,18 @@ export default function AdminLoginScreen({ navigation }) {
               ⚠️ This area is restricted to authorized personnel only.
             </Text>
 
+            <Text style={styles.credentialsHint}>
+              Default credentials: admin / admin
+            </Text>
+
             <TextInput
               style={styles.input}
-              placeholder="Admin Email"
+              placeholder="Admin Username"
               placeholderTextColor="#6c757d"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
+              value={username}
+              onChangeText={setUsername}
               autoCapitalize="none"
-              autoComplete="email"
+              autoComplete="username"
             />
 
             <TextInput
@@ -105,9 +109,10 @@ export default function AdminLoginScreen({ navigation }) {
             <View style={styles.instructionsContainer}>
               <Text style={styles.instructionsTitle}>Admin Access Instructions:</Text>
               <Text style={styles.instructionsText}>
-                1. Use your admin email and password{'\n'}
-                2. Your account must have 'admin' role in the system{'\n'}
-                3. Contact system administrator if you need access
+                1. Use username: admin{'\n'}
+                2. Use password: admin{'\n'}
+                3. Change default credentials in production{'\n'}
+                4. This bypasses Firebase for admin access
               </Text>
             </View>
           </View>
@@ -116,6 +121,9 @@ export default function AdminLoginScreen({ navigation }) {
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               © 2024 oneGondo.edu - Administration Portal
+            </Text>
+            <Text style={styles.securityWarning}>
+              ⚠️ For development only. Change credentials in production.
             </Text>
           </View>
         </View>
@@ -168,20 +176,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffe6e6',
     padding: 12,
     borderRadius: 8,
-    marginBottom: 24,
+    marginBottom: 16,
     fontSize: 14,
     borderWidth: 1,
     borderColor: '#ffcccc',
+  },
+  credentialsHint: {
+    color: '#28a745',
+    backgroundColor: '#e8f5e9',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#c3e6cb',
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
   input: {
     backgroundColor: '#fff',
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: '#dc3545',
     marginVertical: 8,
     fontSize: 16,
-    borderColor: '#dc3545',
   },
   button: {
     padding: 16,
@@ -244,5 +263,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#6c757d',
     fontSize: 14,
+  },
+  securityWarning: {
+    textAlign: 'center',
+    color: '#ff9800',
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginTop: 8,
   },
 });
