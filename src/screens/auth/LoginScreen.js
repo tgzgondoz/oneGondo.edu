@@ -15,7 +15,6 @@ import { useAuth } from '../../components/AuthContext';
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loginType, setLoginType] = useState('student'); // 'student' or 'admin'
   const { signIn, loading } = useAuth();
 
   const handleLogin = async () => {
@@ -24,23 +23,13 @@ export default function LoginScreen({ navigation }) {
       return;
     }
 
-    const result = await signIn(email, password, loginType);
+    const result = await signIn(email, password, 'admin');
     
     if (result.success) {
-      const welcomeMessage = loginType === 'admin' 
-        ? 'Welcome back, Administrator!' 
-        : 'Welcome back!';
-      Alert.alert('Success', welcomeMessage);
+      Alert.alert('Success', 'Welcome back, Administrator!');
     } else {
       Alert.alert('Error', result.error || 'Login failed');
     }
-  };
-
-  const handleLoginTypeChange = (type) => {
-    setLoginType(type);
-    // Clear fields when switching login type
-    setEmail('');
-    setPassword('');
   };
 
   return (
@@ -53,51 +42,18 @@ export default function LoginScreen({ navigation }) {
           {/* Logo Section */}
           <View style={styles.logoContainer}>
             <Text style={styles.logoText}>oneGondo.edu</Text>
-            <Text style={styles.subtitle}>Mobile Learning Platform</Text>
+            <Text style={styles.subtitle}>Administrator Portal</Text>
           </View>
 
           {/* Form Section */}
           <View style={styles.formContainer}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.formSubtitle}>Sign in to continue</Text>
+            <Text style={styles.title}>Admin Login</Text>
+            <Text style={styles.formSubtitle}>Access your dashboard</Text>
 
-            {/* Login Type Selector */}
-            <View style={styles.loginTypeContainer}>
-              <TouchableOpacity 
-                style={[
-                  styles.loginTypeButton, 
-                  loginType === 'student' && styles.loginTypeButtonActive
-                ]}
-                onPress={() => handleLoginTypeChange('student')}
-              >
-                <Text style={[
-                  styles.loginTypeText,
-                  loginType === 'student' && styles.loginTypeTextActive
-                ]}>
-                  Student Sign In
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[
-                  styles.loginTypeButton, 
-                  loginType === 'admin' && styles.loginTypeButtonActive
-                ]}
-                onPress={() => handleLoginTypeChange('admin')}
-              >
-                <Text style={[
-                  styles.loginTypeText,
-                  loginType === 'admin' && styles.loginTypeTextActive
-                ]}>
-                  Admin Sign In
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Email and Password Fields for both student and admin */}
+            {/* Email and Password Fields */}
             <TextInput
               style={styles.input}
-              placeholder="Email Address"
+              placeholder="Admin Email"
               placeholderTextColor="#6c757d"
               value={email}
               onChangeText={setEmail}
@@ -116,31 +72,25 @@ export default function LoginScreen({ navigation }) {
               autoComplete="password"
             />
 
-            {/* Dynamic Login Button */}
+            {/* Login Button */}
             <TouchableOpacity 
               style={[
                 styles.button, 
-                loginType === 'admin' ? styles.adminButton : styles.studentButton,
+                styles.adminButton,
                 loading && styles.buttonDisabled
               ]}
               onPress={handleLogin}
               disabled={loading}
             >
               <Text style={styles.buttonText}>
-                {loading 
-                  ? `Signing In...` 
-                  : loginType === 'admin' ? 'Admin Sign In' : 'Student Sign In'
-                }
+                {loading ? 'Signing In...' : 'Admin Sign In'}
               </Text>
             </TouchableOpacity>
 
             {/* Demo notice */}
             <View style={styles.demoNotice}>
               <Text style={styles.demoNoticeText}>
-                {loginType === 'admin' 
-                  ? 'Admin: Use admin email and password to access dashboard' 
-                  : 'Student: Use your registered email and password'
-                }
+                Use admin credentials to access the dashboard
               </Text>
             </View>
 
@@ -154,12 +104,9 @@ export default function LoginScreen({ navigation }) {
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              Don't have an account?{' '}
-              <Text 
-                style={styles.signUpText}
-                onPress={() => navigation.navigate('Register')}
-              >
-                Sign Up
+              Need help? Contact{' '}
+              <Text style={styles.contactText}>
+                support@onegondo.edu
               </Text>
             </Text>
           </View>
@@ -211,37 +158,7 @@ const styles = StyleSheet.create({
   formSubtitle: {
     fontSize: 18,
     color: '#6c757d',
-    marginBottom: 24,
-  },
-  loginTypeContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#e9ecef',
-    borderRadius: 8,
-    padding: 4,
-    marginBottom: 24,
-  },
-  loginTypeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  loginTypeButtonActive: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  loginTypeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6c757d',
-  },
-  loginTypeTextActive: {
-    color: '#2E86AB',
+    marginBottom: 32,
   },
   input: {
     backgroundColor: '#fff',
@@ -257,9 +174,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginVertical: 16,
-  },
-  studentButton: {
-    backgroundColor: '#28a745', // Green for student
   },
   adminButton: {
     backgroundColor: '#dc3545', // Red for admin
@@ -302,7 +216,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#6c757d',
   },
-  signUpText: {
+  contactText: {
     color: '#2E86AB',
     fontWeight: 'bold',
   },
