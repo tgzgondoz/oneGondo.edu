@@ -247,13 +247,13 @@ export default function LoginScreen({ navigation }) {
                 ) : null}
               </View>
 
-              {/* Password Field */}
+              {/* Password Field - Fixed version */}
               <View style={styles.inputContainer}>
                 <View style={styles.inputLabel}>
                   <Icon name="lock-outline" size={20} color="#6c757d" />
                   <Text style={styles.labelText}>Password</Text>
                 </View>
-                <View style={styles.passwordContainer}>
+                <View style={styles.passwordWrapper}>
                   <TextInput
                     style={[
                       styles.input,
@@ -271,17 +271,21 @@ export default function LoginScreen({ navigation }) {
                     autoComplete="password"
                     autoCapitalize="none"
                     onBlur={() => validatePassword(password)}
+                    blurOnSubmit={false}
                   />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    <Icon 
-                      name={showPassword ? "eye-off" : "eye"} 
-                      size={24} 
-                      color="#6c757d" 
-                    />
-                  </TouchableOpacity>
+                  <View style={styles.eyeIconContainer} pointerEvents="box-none">
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.eyeButton}
+                      activeOpacity={0.6}
+                    >
+                      <Icon 
+                        name={showPassword ? "eye-off" : "eye"} 
+                        size={24} 
+                        color="#6c757d" 
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 {passwordError ? (
                   <View style={styles.errorContainer}>
@@ -507,16 +511,23 @@ const styles = StyleSheet.create({
   inputError: {
     borderColor: '#dc3545',
   },
-  passwordContainer: {
+  passwordWrapper: {
     position: 'relative',
   },
   passwordInput: {
     paddingRight: 50,
   },
-  eyeIcon: {
+  eyeIconContainer: {
     position: 'absolute',
-    right: 16,
-    top: 16,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    zIndex: 1,
+  },
+  eyeButton: {
+    padding: 8,
   },
   errorContainer: {
     flexDirection: 'row',
