@@ -12,25 +12,29 @@ import {
 } from 'react-native';
 import { useAuth } from '../../components/AuthContext';
 
-export default function LoginScreen({ navigation }) {
+export default function AdminLoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { signIn, loading } = useAuth();
 
-  const handleLogin = async () => {
+  const handleAdminLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert('Error', 'Please enter both email and password');
       return;
     }
 
-    const result = await signIn(email, password, 'student');
+    const result = await signIn(email, password, 'admin');
     
     if (result.success) {
-      Alert.alert('Success', 'Welcome back!');
-      // Navigation will be handled by auth state change
+      Alert.alert('Success', 'Welcome Administrator!');
+      // Navigation will be handled automatically by auth state change
     } else {
-      Alert.alert('Error', result.error || 'Login failed');
+      Alert.alert('Admin Login Failed', result.error || 'Invalid admin credentials');
     }
+  };
+
+  const goBackToStudentLogin = () => {
+    navigation.navigate('Login');
   };
 
   return (
@@ -40,21 +44,22 @@ export default function LoginScreen({ navigation }) {
     >
       <ScrollView contentContainerStyle={styles.scrollView}>
         <View style={styles.content}>
-          {/* Logo Section */}
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>oneGondo.edu</Text>
-            <Text style={styles.subtitle}>Mobile Learning Platform</Text>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Administrator Login</Text>
+            <Text style={styles.subtitle}>Restricted Access</Text>
           </View>
 
           {/* Form Section */}
           <View style={styles.formContainer}>
-            <Text style={styles.title}>Student Login</Text>
-            <Text style={styles.formSubtitle}>Sign in to continue your learning</Text>
+            <Text style={styles.formTitle}>Admin Credentials</Text>
+            <Text style={styles.warningText}>
+              ⚠️ This area is restricted to authorized personnel only.
+            </Text>
 
-            {/* Email and Password Fields */}
             <TextInput
               style={styles.input}
-              placeholder="Student Email"
+              placeholder="Admin Email"
               placeholderTextColor="#6c757d"
               value={email}
               onChangeText={setEmail}
@@ -65,7 +70,7 @@ export default function LoginScreen({ navigation }) {
 
             <TextInput
               style={styles.input}
-              placeholder="Password"
+              placeholder="Admin Password"
               placeholderTextColor="#6c757d"
               value={password}
               onChangeText={setPassword}
@@ -73,61 +78,44 @@ export default function LoginScreen({ navigation }) {
               autoComplete="password"
             />
 
-            {/* Login Button */}
+            {/* Admin Login Button */}
             <TouchableOpacity 
               style={[
                 styles.button, 
-                styles.studentButton,
+                styles.adminButton,
                 loading && styles.buttonDisabled
               ]}
-              onPress={handleLogin}
+              onPress={handleAdminLogin}
               disabled={loading}
             >
               <Text style={styles.buttonText}>
-                {loading ? 'Signing In...' : 'Sign In'}
+                {loading ? 'Verifying...' : 'Sign In as Admin'}
               </Text>
             </TouchableOpacity>
 
-            {/* Register Link */}
-            <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>
-                New to oneGondo.edu?{' '}
-                <Text 
-                  style={styles.registerLink}
-                  onPress={() => navigation.navigate('Register')}
-                >
-                  Create an account
-                </Text>
+            {/* Back to Student Login */}
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={goBackToStudentLogin}
+            >
+              <Text style={styles.backButtonText}>← Back to Student Login</Text>
+            </TouchableOpacity>
+
+            {/* Instructions */}
+            <View style={styles.instructionsContainer}>
+              <Text style={styles.instructionsTitle}>Admin Access Instructions:</Text>
+              <Text style={styles.instructionsText}>
+                1. Use your admin email and password{'\n'}
+                2. Your account must have 'admin' role in the system{'\n'}
+                3. Contact system administrator if you need access
               </Text>
             </View>
-
-            {/* Admin Access Link */}
-            <TouchableOpacity 
-              style={styles.adminButton}
-              onPress={() => navigation.navigate('AdminLogin')}
-              disabled={loading}
-            >
-              <Text style={styles.adminButtonText}>
-                <Text style={styles.adminIcon}>⚙️ </Text>
-                Administrator Login
-                <Text style={styles.adminIcon}> ⚙️</Text>
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.forgotPassword}>
-              <Text style={styles.forgotPasswordText}>
-                Forgot Password?
-              </Text>
-            </TouchableOpacity>
           </View>
 
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              Need help? Contact{' '}
-              <Text style={styles.contactText}>
-                support@onegondo.edu
-              </Text>
+              © 2024 oneGondo.edu - Administration Portal
             </Text>
           </View>
         </View>
@@ -150,36 +138,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 32,
   },
-  logoContainer: {
+  header: {
     alignItems: 'center',
     marginTop: 40,
     marginBottom: 32,
   },
-  logoText: {
-    fontSize: 36,
+  title: {
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#2E86AB',
+    color: '#dc3545',
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 18,
     color: '#6c757d',
-    marginTop: 8,
-    marginBottom: 16,
   },
   formContainer: {
     flex: 1,
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
+  formTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#495057',
+    marginBottom: 16,
   },
-  formSubtitle: {
-    fontSize: 18,
-    color: '#6c757d',
-    marginBottom: 32,
+  warningText: {
+    color: '#dc3545',
+    backgroundColor: '#ffe6e6',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 24,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#ffcccc',
   },
   input: {
     backgroundColor: '#fff',
@@ -189,15 +181,13 @@ const styles = StyleSheet.create({
     borderColor: '#e9ecef',
     marginVertical: 8,
     fontSize: 16,
+    borderColor: '#dc3545',
   },
   button: {
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginVertical: 16,
-  },
-  studentButton: {
-    backgroundColor: '#28a745', // Green for student
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -205,16 +195,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   adminButton: {
-    backgroundColor: '#dc3545', // Red for admin
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginVertical: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: '#dc3545',
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -224,39 +205,34 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  adminButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  adminIcon: {
-    fontSize: 16,
-  },
-  registerContainer: {
+  backButton: {
+    padding: 16,
     alignItems: 'center',
-    marginVertical: 12,
-    padding: 12,
+    marginVertical: 8,
+  },
+  backButtonText: {
+    color: '#2E86AB',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  instructionsContainer: {
     backgroundColor: '#e8f4fc',
+    padding: 16,
     borderRadius: 8,
+    marginTop: 24,
     borderWidth: 1,
     borderColor: '#d1e8ff',
   },
-  registerText: {
-    color: '#495057',
-    fontSize: 14,
-  },
-  registerLink: {
+  instructionsTitle: {
     color: '#2E86AB',
     fontWeight: 'bold',
-    fontSize: 14,
-  },
-  forgotPassword: {
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  forgotPasswordText: {
-    color: '#2E86AB',
+    marginBottom: 8,
     fontSize: 16,
+  },
+  instructionsText: {
+    color: '#495057',
+    fontSize: 14,
+    lineHeight: 20,
   },
   footer: {
     paddingTop: 24,
@@ -268,9 +244,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#6c757d',
     fontSize: 14,
-  },
-  contactText: {
-    color: '#2E86AB',
-    fontWeight: 'bold',
   },
 });
