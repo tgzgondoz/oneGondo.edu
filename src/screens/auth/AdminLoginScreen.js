@@ -269,6 +269,6 @@ const styles = StyleSheet.create({
     color: '#ff9800',
     fontSize: 12,
     fontStyle: 'italic',
-    marginTop: 8,
+    marginTop: 9,
   },
 });
