@@ -7,114 +7,93 @@ import {
   SafeAreaView,
   StyleSheet,
   ActivityIndicator,
-  Alert
+  Alert,
+  Modal,
+  FlatList
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getDatabase, ref, get, query, orderByChild, equalTo } from 'firebase/database';
+import { getDatabase, ref, get, set, push, serverTimestamp } from 'firebase/database';
+import { getAuth } from 'firebase/auth';
 
-export default function QuizAttemptsScreen({ navigation, route }) {
-  const { courseId } = route.params || {};
-  const [quizzes, setQuizzes] = useState([]);
-  const [attempts, setAttempts] = useState([]);
+export default function QuizResultsScreen({ navigation, route }) {
+  const { attemptId, courseId, sectionId } = route.params || {};
+  const [attempt, setAttempt] = useState(null);
+  const [quiz, setQuiz] = useState(null);
+  const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [courseTitle, setCourseTitle] = useState('');
+  const [showQuestionModal, setShowQuestionModal] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState(null);
 
   const db = getDatabase();
   const userId = getAuth().currentUser?.uid;
 
   useEffect(() => {
-    if (courseId && userId) {
-      loadCourseQuizzes();
-      loadUserAttempts();
+    if (attemptId && courseId && sectionId) {
+      loadQuizResults();
     }
-  }, [courseId, userId]);
+  }, [attemptId, courseId, sectionId]);
 
-  const loadCourseQuizzes = async () => {
+  const loadQuizResults = async () => {
     try {
-      // Load course title
-      const courseRef = ref(db, `courses/${courseId}`);
-      const courseSnapshot = await get(courseRef);
-      if (courseSnapshot.exists()) {
-        setCourseTitle(courseSnapshot.val().title || 'Quizzes');
-      }
-
-      // Load quiz sections
-      const sectionsRef = ref(db, `courses/${courseId}/sections`);
-      const sectionsSnapshot = await get(sectionsRef);
+      setLoading(true);
       
-      if (sectionsSnapshot.exists()) {
-        const sectionsData = sectionsSnapshot.val();
-        let quizSections = [];
+      // Load attempt data
+      const attemptRef = ref(db, `users/${userId}/quizAttempts/${courseId}/${attemptId}`);
+      const attemptSnapshot = await get(attemptRef);
+      
+      if (attemptSnapshot.exists()) {
+        const attemptData = attemptSnapshot.val();
+        setAttempt(attemptData);
         
-        for (const [sectionId, sectionData] of Object.entries(sectionsData)) {
-          if (sectionData.type === 'quiz' || sectionData.type === 'test') {
-            // Load quiz questions
-            const lessonsRef = ref(db, `courses/${courseId}/sections/${sectionId}/lessons`);
-            const lessonsSnapshot = await get(lessonsRef);
-            
-            if (lessonsSnapshot.exists()) {
-              const lessonsData = lessonsSnapshot.val();
-              const quizCount = Object.keys(lessonsData).length;
-              
-              quizSections.push({
-                id: sectionId,
-                ...sectionData,
-                quizCount,
-                totalQuestions: sectionData.totalQuestions || quizCount,
-                passingScore: sectionData.passingScore || 70,
-              });
-            }
+        // Load section details
+        const sectionRef = ref(db, `courses/${courseId}/sections/${sectionId}`);
+        const sectionSnapshot = await get(sectionRef);
+        
+        if (sectionSnapshot.exists()) {
+          setQuiz(sectionSnapshot.val());
+          
+          // Load questions for this quiz
+          const questionsRef = ref(db, `courses/${courseId}/sections/${sectionId}/lessons`);
+          const questionsSnapshot = await get(questionsRef);
+          
+          if (questionsSnapshot.exists()) {
+            const questionsData = questionsSnapshot.val();
+            const questionsArray = Object.keys(questionsData).map(key => ({
+              id: key,
+              ...questionsData[key],
+              userAnswer: attemptData.answers?.[key]?.userAnswer,
+              isCorrect: attemptData.answers?.[key]?.isCorrect,
+            }));
+            setQuestions(questionsArray.sort((a, b) => (a.order || 0) - (b.order || 0)));
           }
         }
-        
-        setQuizzes(quizSections);
       }
     } catch (error) {
-      console.error('Error loading quizzes:', error);
-      Alert.alert('Error', 'Failed to load quizzes');
+      console.error('Error loading quiz results:', error);
+      Alert.alert('Error', 'Failed to load quiz results');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const loadUserAttempts = async () => {
-    if (!userId) return;
-    
-    try {
-      const attemptsRef = ref(db, `users/${userId}/quizAttempts/${courseId}`);
-      const snapshot = await get(attemptsRef);
-      
-      if (snapshot.exists()) {
-        const attemptsData = snapshot.val();
-        const attemptsArray = Object.keys(attemptsData).map(key => ({
-          attemptId: key,
-          ...attemptsData[key],
-        }));
-        setAttempts(attemptsArray);
-      }
-    } catch (error) {
-      console.error('Error loading attempts:', error);
-    }
-  };
-
-  const getAttemptForQuiz = (sectionId) => {
-    return attempts.find(attempt => attempt.sectionId === sectionId);
-  };
-
-  const startQuiz = (quiz) => {
+  const retakeQuiz = () => {
     navigation.navigate('TakeQuiz', {
       courseId,
-      sectionId: quiz.id,
-      quizTitle: quiz.title,
-      totalQuestions: quiz.quizCount || quiz.totalQuestions,
-      passingScore: quiz.passingScore,
+      sectionId,
+      quizTitle: quiz?.title || 'Quiz',
+      totalQuestions: questions.length,
+      passingScore: quiz?.passingScore || 70,
+      isRetake: true,
     });
   };
 
-  const viewQuizResults = (attempt) => {
-    navigation.navigate('QuizResults', {
-      attemptId: attempt.attemptId,
-      courseId,
-      sectionId: attempt.sectionId,
-    });
+  const viewQuestionDetails = (question) => {
+    setSelectedQuestion(question);
+    setShowQuestionModal(true);
+  };
+
+  const getAnswerLetter = (index) => {
+    return String.fromCharCode(65 + index); // A, B, C, D
   };
 
   const getScoreColor = (score, passingScore = 70) => {
@@ -123,9 +102,22 @@ export default function QuizAttemptsScreen({ navigation, route }) {
     return '#dc3545';
   };
 
-  const getStatusBadge = (score, passingScore = 70) => {
-    if (score >= passingScore) return { text: 'Passed', color: '#d4edda', textColor: '#155724' };
-    return { text: 'Failed', color: '#f8d7da', textColor: '#721c24' };
+  const getPerformanceMessage = (score, passingScore = 70) => {
+    if (score >= passingScore) {
+      const messages = [
+        "Excellent work! You've mastered this material.",
+        "Great job! You have a solid understanding.",
+        "Well done! You passed with flying colors."
+      ];
+      return messages[Math.floor(Math.random() * messages.length)];
+    } else {
+      const messages = [
+        "Keep practicing! Review the material and try again.",
+        "You're getting there! Focus on the areas you missed.",
+        "Don't give up! Use this as a learning opportunity."
+      ];
+      return messages[Math.floor(Math.random() * messages.length)];
+    }
   };
 
   if (loading) {
@@ -133,11 +125,39 @@ export default function QuizAttemptsScreen({ navigation, route }) {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E86AB" />
-          <Text style={styles.loadingText}>Loading quizzes...</Text>
+          <Text style={styles.loadingText}>Loading results...</Text>
         </View>
       </SafeAreaView>
     );
   }
+
+  if (!attempt || !quiz) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Quiz Results</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={64} color="#dc3545" />
+          <Text style={styles.errorText}>Unable to load quiz results</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadQuizResults}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const correctCount = questions.filter(q => q.isCorrect).length;
+  const totalQuestions = questions.length;
+  const score = attempt.score || 0;
+  const passingScore = quiz.passingScore || 70;
+  const passed = score >= passingScore;
+  const timeTaken = attempt.timeTaken ? `${Math.round(attempt.timeTaken / 60)} min ${attempt.timeTaken % 60} sec` : 'N/A';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -145,168 +165,271 @@ export default function QuizAttemptsScreen({ navigation, route }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {courseTitle || 'Quizzes'}
-        </Text>
+        <Text style={styles.headerTitle}>Quiz Results</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView style={styles.scrollView}>
-        <View style={styles.content}>
-          <View style={styles.summaryCard}>
-            <Ionicons name="help-circle" size={32} color="#2E86AB" />
-            <View style={styles.summaryInfo}>
-              <Text style={styles.summaryTitle}>Course Quizzes</Text>
-              <Text style={styles.summaryText}>
-                {quizzes.length} {quizzes.length === 1 ? 'quiz' : 'quizzes'} available
-              </Text>
-            </View>
+        {/* Results Summary Card */}
+        <View style={styles.summaryCard}>
+          <View style={styles.scoreCircle}>
+            <Text style={[styles.scoreText, { color: getScoreColor(score, passingScore) }]}>
+              {score}%
+            </Text>
+            <Text style={styles.scoreLabel}>Score</Text>
           </View>
-
-          {quizzes.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="help-circle-outline" size={64} color="#adb5bd" />
-              <Text style={styles.emptyStateTitle}>No Quizzes Available</Text>
-              <Text style={styles.emptyStateText}>
-                This course doesn't have any quizzes or tests yet.
+          
+          <View style={styles.summaryDetails}>
+            <Text style={styles.quizTitle}>{quiz.title}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: passed ? '#d4edda' : '#f8d7da' }]}>
+              <Text style={[styles.statusText, { color: passed ? '#155724' : '#721c24' }]}>
+                {passed ? 'PASSED' : 'NOT PASSED'}
               </Text>
             </View>
-          ) : (
-            quizzes.map(quiz => {
-              const attempt = getAttemptForQuiz(quiz.id);
-              const hasAttempt = !!attempt;
-              const score = attempt?.score || 0;
-              const status = getStatusBadge(score, quiz.passingScore);
-
-              return (
-                <View key={quiz.id} style={styles.quizCard}>
-                  <View style={styles.quizHeader}>
-                    <View style={styles.quizIcon}>
-                      <Ionicons 
-                        name={quiz.type === 'test' ? 'school' : 'help-circle'} 
-                        size={24} 
-                        color={quiz.type === 'test' ? '#dc3545' : '#ffc107'} 
-                      />
-                    </View>
-                    <View style={styles.quizInfo}>
-                      <Text style={styles.quizTitle}>{quiz.title}</Text>
-                      <Text style={styles.quizDescription}>
-                        {quiz.description || `${quiz.quizCount || quiz.totalQuestions} questions`}
-                      </Text>
-                      <View style={styles.quizMeta}>
-                        <View style={styles.metaItem}>
-                          <Ionicons name="help-circle-outline" size={14} color="#6c757d" />
-                          <Text style={styles.metaText}>
-                            {quiz.quizCount || quiz.totalQuestions} questions
-                          </Text>
-                        </View>
-                        <View style={styles.metaItem}>
-                          <Ionicons name="checkmark-circle-outline" size={14} color="#6c757d" />
-                          <Text style={styles.metaText}>
-                            Pass: {quiz.passingScore}%
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                    {hasAttempt && (
-                      <View style={[styles.scoreBadge, { backgroundColor: status.color }]}>
-                        <Text style={[styles.scoreText, { color: status.textColor }]}>
-                          {score}%
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {hasAttempt ? (
-                    <View style={styles.attemptInfo}>
-                      <View style={styles.attemptHeader}>
-                        <View style={[styles.statusBadge, { backgroundColor: status.color }]}>
-                          <Text style={[styles.statusText, { color: status.textColor }]}>
-                            {status.text}
-                          </Text>
-                        </View>
-                        <Text style={styles.attemptDate}>
-                          {new Date(attempt.completedAt).toLocaleDateString()}
-                        </Text>
-                      </View>
-                      <View style={styles.attemptDetails}>
-                        <View style={styles.detailItem}>
-                          <Text style={styles.detailLabel}>Score</Text>
-                          <Text style={[styles.detailValue, { color: getScoreColor(score, quiz.passingScore) }]}>
-                            {score}%
-                          </Text>
-                        </View>
-                        <View style={styles.detailItem}>
-                          <Text style={styles.detailLabel}>Correct</Text>
-                          <Text style={styles.detailValue}>
-                            {attempt.correctAnswers || 0}/{attempt.totalQuestions || quiz.quizCount}
-                          </Text>
-                        </View>
-                        <View style={styles.detailItem}>
-                          <Text style={styles.detailLabel}>Time</Text>
-                          <Text style={styles.detailValue}>
-                            {attempt.timeTaken ? `${Math.round(attempt.timeTaken / 60)}min` : 'N/A'}
-                          </Text>
-                        </View>
-                      </View>
-                      <View style={styles.actionButtons}>
-                        <TouchableOpacity 
-                          style={styles.viewResultsButton}
-                          onPress={() => viewQuizResults(attempt)}
-                        >
-                          <Ionicons name="stats-chart" size={20} color="#fff" />
-                          <Text style={styles.viewResultsText}>View Results</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                          style={styles.retakeButton}
-                          onPress={() => startQuiz(quiz)}
-                        >
-                          <Ionicons name="refresh" size={20} color="#2E86AB" />
-                          <Text style={styles.retakeText}>Retake</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  ) : (
-                    <TouchableOpacity 
-                      style={styles.startQuizButton}
-                      onPress={() => startQuiz(quiz)}
-                    >
-                      <Ionicons name="play-circle" size={24} color="#fff" />
-                      <Text style={styles.startQuizText}>
-                        {quiz.type === 'test' ? 'Start Test' : 'Start Quiz'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              );
-            })
-          )}
-
-          {attempts.length > 0 && (
-            <View style={styles.attemptsSummary}>
-              <Text style={styles.summaryTitle}>Attempts Summary</Text>
-              <View style={styles.summaryStats}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{attempts.length}</Text>
-                  <Text style={styles.statLabel}>Total Attempts</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>
-                    {attempts.filter(a => a.score >= 70).length}
-                  </Text>
-                  <Text style={styles.statLabel}>Passed</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>
-                    {Math.round(attempts.reduce((sum, a) => sum + (a.score || 0), 0) / attempts.length)}%
-                  </Text>
-                  <Text style={styles.statLabel}>Avg Score</Text>
-                </View>
+            
+            <View style={styles.statsGrid}>
+              <View style={styles.statItem}>
+                <Ionicons name="checkmark-circle" size={20} color="#28a745" />
+                <Text style={styles.statValue}>{correctCount}</Text>
+                <Text style={styles.statLabel}>Correct</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Ionicons name="close-circle" size={20} color="#dc3545" />
+                <Text style={styles.statValue}>{totalQuestions - correctCount}</Text>
+                <Text style={styles.statLabel}>Incorrect</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Ionicons name="time-outline" size={20} color="#2E86AB" />
+                <Text style={styles.statValue}>{timeTaken}</Text>
+                <Text style={styles.statLabel}>Time</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Ionicons name="trophy-outline" size={20} color="#ffc107" />
+                <Text style={styles.statValue}>{passingScore}%</Text>
+                <Text style={styles.statLabel}>To Pass</Text>
               </View>
             </View>
+            
+            <Text style={styles.performanceMessage}>
+              {getPerformanceMessage(score, passingScore)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Performance Breakdown */}
+        <View style={styles.breakdownCard}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="stats-chart" size={20} color="#2E86AB" />
+            <Text style={styles.cardTitle}>Performance Breakdown</Text>
+          </View>
+          
+          <View style={styles.progressBarContainer}>
+            <View style={styles.progressBarBackground}>
+              <View 
+                style={[
+                  styles.progressBarFill, 
+                  { 
+                    width: `${score}%`,
+                    backgroundColor: getScoreColor(score, passingScore)
+                  }
+                ]} 
+              />
+            </View>
+            <View style={styles.progressLabels}>
+              <Text style={styles.progressLabel}>0%</Text>
+              <Text style={styles.passingLabel}>Pass: {passingScore}%</Text>
+              <Text style={styles.progressLabel}>100%</Text>
+            </View>
+          </View>
+          
+          <View style={styles.percentageCircles}>
+            <View style={styles.percentageCircle}>
+              <Text style={styles.percentageValue}>{Math.round((correctCount / totalQuestions) * 100)}%</Text>
+              <Text style={styles.percentageLabel}>Accuracy</Text>
+            </View>
+            <View style={styles.percentageCircle}>
+              <Text style={styles.percentageValue}>{score}%</Text>
+              <Text style={styles.percentageLabel}>Final Score</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Questions Review */}
+        <View style={styles.questionsCard}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="list" size={20} color="#2E86AB" />
+            <Text style={styles.cardTitle}>Question Review</Text>
+          </View>
+          
+          <Text style={styles.reviewText}>
+            Review your answers below. Tap any question to see details.
+          </Text>
+          
+          {questions.map((question, index) => (
+            <TouchableOpacity 
+              key={question.id}
+              style={[
+                styles.questionItem,
+                { borderLeftColor: question.isCorrect ? '#28a745' : '#dc3545' }
+              ]}
+              onPress={() => viewQuestionDetails(question)}
+            >
+              <View style={styles.questionHeader}>
+                <Text style={styles.questionNumber}>Q{index + 1}</Text>
+                <View style={[
+                  styles.correctnessBadge,
+                  { backgroundColor: question.isCorrect ? '#d4edda' : '#f8d7da' }
+                ]}>
+                  <Ionicons 
+                    name={question.isCorrect ? "checkmark" : "close"} 
+                    size={14} 
+                    color={question.isCorrect ? '#155724' : '#721c24'} 
+                  />
+                  <Text style={[
+                    styles.correctnessText,
+                    { color: question.isCorrect ? '#155724' : '#721c24' }
+                  ]}>
+                    {question.isCorrect ? 'Correct' : 'Incorrect'}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.questionTitle} numberOfLines={2}>
+                {question.title}
+              </Text>
+              <View style={styles.questionFooter}>
+                <Text style={styles.pointsText}>
+                  Points: {question.isCorrect ? '1/1' : '0/1'}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color="#6c757d" />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity 
+            style={[styles.retakeButton, !passed && styles.primaryButton]}
+            onPress={retakeQuiz}
+          >
+            <Ionicons name="refresh" size={20} color={passed ? "#2E86AB" : "#fff"} />
+            <Text style={[styles.retakeButtonText, { color: passed ? "#2E86AB" : "#fff" }]}>
+              {passed ? 'Retake Quiz' : 'Try Again'}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.backToQuizzesButton}
+            onPress={() => navigation.navigate('QuizAttempts', { courseId })}
+          >
+            <Ionicons name="list-circle" size={20} color="#2E86AB" />
+            <Text style={styles.backToQuizzesText}>Back to Quizzes</Text>
+          </TouchableOpacity>
+          
+          {passed && (
+            <TouchableOpacity 
+              style={styles.continueButton}
+              onPress={() => navigation.navigate('CourseMaterial', { courseId })}
+            >
+              <Ionicons name="arrow-forward" size={20} color="#fff" />
+              <Text style={styles.continueText}>Continue Course</Text>
+            </TouchableOpacity>
           )}
         </View>
       </ScrollView>
+
+      {/* Question Details Modal */}
+      <Modal
+        transparent={true}
+        visible={showQuestionModal}
+        animationType="slide"
+        onRequestClose={() => setShowQuestionModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Question Details</Text>
+              <TouchableOpacity onPress={() => setShowQuestionModal(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            {selectedQuestion && (
+              <ScrollView style={styles.modalScroll}>
+                <View style={[
+                  styles.questionStatus,
+                  { backgroundColor: selectedQuestion.isCorrect ? '#d4edda' : '#f8d7da' }
+                ]}>
+                  <Ionicons 
+                    name={selectedQuestion.isCorrect ? "checkmark-circle" : "close-circle"} 
+                    size={24} 
+                    color={selectedQuestion.isCorrect ? '#155724' : '#721c24'} 
+                  />
+                  <Text style={[
+                    styles.questionStatusText,
+                    { color: selectedQuestion.isCorrect ? '#155724' : '#721c24' }
+                  ]}>
+                    {selectedQuestion.isCorrect ? 'Answered Correctly' : 'Answered Incorrectly'}
+                  </Text>
+                </View>
+                
+                <View style={styles.questionContent}>
+                  <Text style={styles.modalQuestionTitle}>{selectedQuestion.title}</Text>
+                  {selectedQuestion.content && (
+                    <Text style={styles.modalQuestionContent}>{selectedQuestion.content}</Text>
+                  )}
+                </View>
+                
+                <View style={styles.answersSection}>
+                  <Text style={styles.answersTitle}>Options:</Text>
+                  {selectedQuestion.options?.map((option, index) => (
+                    <View 
+                      key={index}
+                      style={[
+                        styles.optionItem,
+                        selectedQuestion.correctAnswer === getAnswerLetter(index) && styles.correctOption,
+                        selectedQuestion.userAnswer === getAnswerLetter(index) && !selectedQuestion.isCorrect && styles.incorrectOption
+                      ]}
+                    >
+                      <View style={styles.optionHeader}>
+                        <Text style={styles.optionLetter}>{getAnswerLetter(index)}</Text>
+                        {selectedQuestion.correctAnswer === getAnswerLetter(index) && (
+                          <View style={styles.correctIndicator}>
+                            <Ionicons name="checkmark" size={14} color="#155724" />
+                            <Text style={styles.correctText}>Correct Answer</Text>
+                          </View>
+                        )}
+                        {selectedQuestion.userAnswer === getAnswerLetter(index) && !selectedQuestion.isCorrect && (
+                          <View style={styles.yourAnswerIndicator}>
+                            <Ionicons name="person" size={14} color="#721c24" />
+                            <Text style={styles.yourAnswerText}>Your Answer</Text>
+                          </View>
+                        )}
+                        {selectedQuestion.userAnswer === getAnswerLetter(index) && selectedQuestion.isCorrect && (
+                          <View style={styles.correctIndicator}>
+                            <Ionicons name="checkmark" size={14} color="#155724" />
+                            <Text style={styles.correctText}>Your Correct Answer</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.optionText}>{option}</Text>
+                    </View>
+                  ))}
+                </View>
+                
+                <View style={styles.explanationSection}>
+                  <Text style={styles.explanationTitle}>Explanation:</Text>
+                  <Text style={styles.explanationText}>
+                    {selectedQuestion.isCorrect 
+                      ? "You selected the correct answer. Well done!" 
+                      : "Review this question to understand why the correct answer is what it is."}
+                  </Text>
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -331,7 +454,6 @@ const styles = StyleSheet.create({
     color: '#333',
     flex: 1,
     textAlign: 'center',
-    marginHorizontal: 10,
   },
   loadingContainer: {
     flex: 1,
@@ -343,238 +465,436 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6c757d',
   },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  errorText: {
+    fontSize: 18,
+    color: '#dc3545',
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#2E86AB',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   scrollView: {
     flex: 1,
   },
-  content: {
-    padding: 20,
-  },
   summaryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#fff',
+    margin: 20,
     padding: 20,
-    borderRadius: 12,
-    marginBottom: 20,
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  summaryInfo: {
-    marginLeft: 15,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  summaryText: {
-    fontSize: 14,
-    color: '#6c757d',
-    marginTop: 4,
-  },
-  quizCard: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  quizHeader: {
-    flexDirection: 'row',
+    shadowRadius: 8,
+    elevation: 5,
     alignItems: 'center',
-    marginBottom: 15,
   },
-  quizIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  scoreCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: '#f8f9fa',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 15,
-  },
-  quizInfo: {
-    flex: 1,
-  },
-  quizTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  quizDescription: {
-    fontSize: 14,
-    color: '#6c757d',
-    marginTop: 2,
-  },
-  quizMeta: {
-    flexDirection: 'row',
-    marginTop: 4,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  metaText: {
-    fontSize: 12,
-    color: '#6c757d',
-    marginLeft: 4,
-  },
-  scoreBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    marginBottom: 20,
+    borderWidth: 4,
+    borderColor: '#e9ecef',
   },
   scoreText: {
-    fontSize: 14,
+    fontSize: 36,
     fontWeight: 'bold',
   },
-  attemptInfo: {
-    borderTopWidth: 1,
-    borderTopColor: '#e9ecef',
-    paddingTop: 15,
-  },
-  attemptHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  attemptDate: {
-    fontSize: 12,
+  scoreLabel: {
+    fontSize: 14,
     color: '#6c757d',
+    marginTop: 4,
   },
-  attemptDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-    paddingHorizontal: 10,
-  },
-  detailItem: {
+  summaryDetails: {
+    width: '100%',
     alignItems: 'center',
   },
-  detailLabel: {
-    fontSize: 12,
-    color: '#6c757d',
-    marginBottom: 2,
-  },
-  detailValue: {
-    fontSize: 16,
+  quizTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
+    textAlign: 'center',
+    marginBottom: 12,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  viewResultsButton: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2E86AB',
-    padding: 10,
-    borderRadius: 6,
-  },
-  viewResultsText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  retakeButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8f9fa',
-    padding: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#dee2e6',
-  },
-  retakeText: {
-    color: '#2E86AB',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  startQuizButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2E86AB',
-    padding: 12,
-    borderRadius: 8,
-  },
-  startQuizText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  emptyState: {
-    alignItems: 'center',
-    padding: 40,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+  statusBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     marginBottom: 20,
   },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#495057',
-    marginTop: 16,
-  },
-  emptyStateText: {
+  statusText: {
     fontSize: 14,
-    color: '#6c757d',
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20,
+    fontWeight: 'bold',
   },
-  attemptsSummary: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    marginTop: 10,
-  },
-  summaryStats: {
+  statsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginTop: 15,
+    width: '100%',
+    marginBottom: 20,
   },
   statItem: {
     alignItems: 'center',
-    flex: 1,
+    width: '48%',
+    marginBottom: 12,
   },
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2E86AB',
+    color: '#333',
+    marginTop: 4,
   },
   statLabel: {
     fontSize: 12,
     color: '#6c757d',
+    marginTop: 2,
+  },
+  performanceMessage: {
+    fontSize: 14,
+    color: '#495057',
+    textAlign: 'center',
+    lineHeight: 20,
+    fontStyle: 'italic',
+    paddingHorizontal: 20,
+  },
+  breakdownCard: {
+    backgroundColor: '#fff',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginLeft: 10,
+  },
+  progressBarContainer: {
+    marginBottom: 24,
+  },
+  progressBarBackground: {
+    height: 12,
+    backgroundColor: '#e9ecef',
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 6,
+  },
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  progressLabel: {
+    fontSize: 12,
+    color: '#6c757d',
+  },
+  passingLabel: {
+    fontSize: 12,
+    color: '#2E86AB',
+    fontWeight: '600',
+  },
+  percentageCircles: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  percentageCircle: {
+    alignItems: 'center',
+  },
+  percentageValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2E86AB',
+  },
+  percentageLabel: {
+    fontSize: 12,
+    color: '#6c757d',
     marginTop: 4,
   },
+  questionsCard: {
+    backgroundColor: '#fff',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  reviewText: {
+    fontSize: 14,
+    color: '#6c757d',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  questionItem: {
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+  },
+  questionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  questionNumber: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2E86AB',
+  },
+  correctnessBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  correctnessText: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  questionTitle: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  questionFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pointsText: {
+    fontSize: 12,
+    color: '#6c757d',
+  },
+  actionButtons: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  primaryButton: {
+    backgroundColor: '#2E86AB',
+  },
+  retakeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#2E86AB',
+  },
+  retakeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  backToQuizzesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#e9ecef',
+  },
+  backToQuizzesText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2E86AB',
+    marginLeft: 8,
+  },
+  continueButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#28a745',
+    padding: 16,
+    borderRadius: 12,
+  },
+  continueText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginLeft: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalScroll: {
+    padding: 20,
+  },
+  questionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  questionStatusText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  questionContent: {
+    marginBottom: 20,
+  },
+  modalQuestionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  modalQuestionContent: {
+    fontSize: 14,
+    color: '#495057',
+    lineHeight: 20,
+  },
+  answersSection: {
+    marginBottom: 20,
+  },
+  answersTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  optionItem: {
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 2,
+    borderColor: '#f8f9fa',
+  },
+  correctOption: {
+    borderColor: '#d4edda',
+    backgroundColor: '#d4edda',
+  },
+  incorrectOption: {
+    borderColor: '#f8d7da',
+    backgroundColor: '#f8d7da',
+  },
+  optionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  optionLetter: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2E86AB',
+  },
+  correctIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#28a745',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  correctText: {
+    fontSize: 11,
+    color: '#fff',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  yourAnswerIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#dc3545',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  yourAnswerText: {
+    fontSize: 11,
+    color: '#fff',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  optionText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+  },
+  explanationSection: {
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 12,
+  },
+  explanationTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  explanationText: {
+    fontSize: 14,
+    color: '#495057',
+    lineHeight: 20,
+  },
 });
-
-// Import getAuth
-import { getAuth } from 'firebase/auth';

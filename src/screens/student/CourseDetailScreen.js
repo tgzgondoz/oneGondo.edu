@@ -106,20 +106,39 @@ export default function CourseDetailScreen({ navigation, route }) {
     }
   };
 
+  // FIXED: Updated navigation to use existing screens
   const navigateToSection = (section) => {
     if (section.type === 'video' || section.type === 'document') {
-      // Navigate to section content
-      navigation.navigate('SectionContent', {
-        courseId,
-        sectionId: section.id,
-        sectionTitle: section.title
-      });
+      // Navigate to Course Materials instead of SectionContent
+      Alert.alert(
+        'Start Learning',
+        `Navigate to "${section.title}" materials. All learning materials are available in the Course Materials section.`,
+        [
+          {
+            text: 'Go to Materials',
+            onPress: () => navigation.navigate('CourseMaterials', { 
+              courseId,
+              courseTitle: course.title
+            })
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          }
+        ]
+      );
     } else if (section.type === 'quiz' || section.type === 'test') {
       // Navigate to quiz
       navigation.navigate('TakeQuiz', {
         courseId,
         sectionId: section.id,
         quizTitle: section.title
+      });
+    } else {
+      // For other types, show materials
+      navigation.navigate('CourseMaterials', { 
+        courseId,
+        courseTitle: course.title
       });
     }
   };
