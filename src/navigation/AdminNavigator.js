@@ -8,6 +8,7 @@ import AdminProfileScreen from '../screens/admin/AdminProfileScreen';
 import UserManagementScreen from '../screens/admin/UserManagementScreen';
 import CourseManagementScreen from '../screens/admin/CourseManagementScreen';
 import CreateCourseScreen from '../screens/admin/CreateCourseScreen';
+import AddSectionScreen from '../screens/admin/AddSectionScreen';
 
 const Tab = createBottomTabNavigator();
 const CourseStack = createStackNavigator();
@@ -26,10 +27,15 @@ function DashboardStackNavigator() {
   );
 }
 
-// Stack Navigator for Courses with CreateCourseScreen
+// Stack Navigator for Courses with CreateCourseScreen and AddSectionScreen
 function CourseStackNavigator() {
   return (
-    <CourseStack.Navigator screenOptions={{ headerShown: false }}>
+    <CourseStack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        cardStyle: { backgroundColor: 'white' }
+      }}
+    >
       <CourseStack.Screen 
         name="CourseManagementMain" 
         component={CourseManagementScreen}
@@ -40,7 +46,83 @@ function CourseStackNavigator() {
         options={{
           presentation: 'modal',
           gestureEnabled: true,
+          cardStyleInterpolator: ({ current: { progress } }) => ({
+            cardStyle: {
+              opacity: progress.interpolate({
+                inputRange: [0, 0.5, 0.9, 1],
+                outputRange: [0, 0.25, 0.7, 1],
+              }),
+              transform: [
+                {
+                  translateY: progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [50, 0],
+                  }),
+                },
+              ],
+            },
+            overlayStyle: {
+              opacity: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 0.5],
+              }),
+            },
+          }),
         }}
+      />
+      <CourseStack.Screen 
+        name="AddSection" 
+        component={AddSectionScreen}
+        options={{
+          presentation: 'modal',
+          gestureEnabled: true,
+          cardStyleInterpolator: ({ current: { progress } }) => ({
+            cardStyle: {
+              opacity: progress.interpolate({
+                inputRange: [0, 0.5, 0.9, 1],
+                outputRange: [0, 0.25, 0.7, 1],
+              }),
+              transform: [
+                {
+                  translateY: progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [50, 0],
+                  }),
+                },
+              ],
+            },
+            overlayStyle: {
+              opacity: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 0.5],
+              }),
+            },
+          }),
+        }}
+      />
+    </CourseStack.Navigator>
+  );
+}
+
+// Stack Navigator for User Management
+function UserStackNavigator() {
+  return (
+    <CourseStack.Navigator screenOptions={{ headerShown: false }}>
+      <CourseStack.Screen 
+        name="UserManagementMain" 
+        component={UserManagementScreen}
+      />
+    </CourseStack.Navigator>
+  );
+}
+
+// Stack Navigator for Profile
+function ProfileStackNavigator() {
+  return (
+    <CourseStack.Navigator screenOptions={{ headerShown: false }}>
+      <CourseStack.Screen 
+        name="ProfileMain" 
+        component={AdminProfileScreen}
       />
     </CourseStack.Navigator>
   );
@@ -72,10 +154,17 @@ export default function AdminNavigator() {
           backgroundColor: 'white',
           borderTopWidth: 1,
           borderTopColor: '#e5e5e5',
+          paddingBottom: 5,
+          paddingTop: 5,
+          height: 60,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
+          marginBottom: 5,
+        },
+        tabBarIconStyle: {
+          marginTop: 5,
         },
       })}
     >
@@ -88,18 +177,10 @@ export default function AdminNavigator() {
       />
       <Tab.Screen 
         name="Users" 
-        component={UserManagementScreen}
+        component={UserStackNavigator}
         options={{
           tabBarLabel: 'Users',
-          headerShown: true,
-          headerTitle: 'User Management',
-          headerStyle: {
-            backgroundColor: '#2E86AB',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
+          headerShown: false,
         }}
       />
       <Tab.Screen 
@@ -111,18 +192,10 @@ export default function AdminNavigator() {
       />
       <Tab.Screen 
         name="Profile" 
-        component={AdminProfileScreen}
+        component={ProfileStackNavigator}
         options={{
           tabBarLabel: 'Profile',
-          headerShown: true,
-          headerTitle: 'Admin Profile',
-          headerStyle: {
-            backgroundColor: '#2E86AB',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
+          headerShown: false,
         }}
       />
     </Tab.Navigator>
