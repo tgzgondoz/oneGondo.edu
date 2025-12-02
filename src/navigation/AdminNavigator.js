@@ -9,6 +9,7 @@ import UserManagementScreen from '../screens/admin/UserManagementScreen';
 import CourseManagementScreen from '../screens/admin/CourseManagementScreen';
 import CreateCourseScreen from '../screens/admin/CreateCourseScreen';
 import AddSectionScreen from '../screens/admin/AddSectionScreen';
+import EditLessonScreen from '../screens/admin/EditLessonScreen';
 
 const Tab = createBottomTabNavigator();
 const CourseStack = createStackNavigator();
@@ -73,6 +74,36 @@ function CourseStackNavigator() {
       <CourseStack.Screen 
         name="AddSection" 
         component={AddSectionScreen}
+        options={{
+          presentation: 'modal',
+          gestureEnabled: true,
+          cardStyleInterpolator: ({ current: { progress } }) => ({
+            cardStyle: {
+              opacity: progress.interpolate({
+                inputRange: [0, 0.5, 0.9, 1],
+                outputRange: [0, 0.25, 0.7, 1],
+              }),
+              transform: [
+                {
+                  translateY: progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [50, 0],
+                  }),
+                },
+              ],
+            },
+            overlayStyle: {
+              opacity: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 0.5],
+              }),
+            },
+          }),
+        }}
+      />
+      <CourseStack.Screen 
+        name="EditLesson" 
+        component={EditLessonScreen}
         options={{
           presentation: 'modal',
           gestureEnabled: true,
