@@ -12,8 +12,7 @@ import {
   Animated,
   ActivityIndicator,
   Dimensions,
-  SafeAreaView,
-  Keyboard
+  SafeAreaView
 } from 'react-native';
 import { useAuth } from '../../components/AuthContext';
 
@@ -30,23 +29,6 @@ export default function AdminLoginScreen({ navigation }) {
   const { adminSignIn, loading } = useAuth();
 
   const timerRef = useRef(null);
-
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
-      () => {}
-    );
-    const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
-      () => {}
-    );
-
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     if (isLocked && lockTime > 0) {
@@ -108,17 +90,12 @@ export default function AdminLoginScreen({ navigation }) {
       return;
     }
 
-    Keyboard.dismiss();
-
     const result = await adminSignIn(username, password);
     
     if (result.success) {
       setAttempts(0);
-      Alert.alert(
-        'Access Granted',
-        'Welcome to the Administration Dashboard',
-        [{ text: 'Continue', onPress: () => {} }]
-      );
+      // Navigate to admin dashboard or handle success
+      // navigation.navigate('AdminDashboard');
     } else {
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
@@ -153,10 +130,12 @@ export default function AdminLoginScreen({ navigation }) {
       <KeyboardAvoidingView 
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <ScrollView 
           contentContainerStyle={styles.scrollView}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Security Header */}
           <View style={styles.securityHeader}>
@@ -178,7 +157,7 @@ export default function AdminLoginScreen({ navigation }) {
             <View style={styles.warningBanner}>
               <Text style={styles.alertIcon}>⚠️</Text>
               <Text style={styles.warningText}>
-                UNAUTHORIZED ACCESS IS PROHIBITED AND MONITORED
+                UNAUTHORIZED ACCESS IS MONITORED
               </Text>
             </View>
 
@@ -210,6 +189,7 @@ export default function AdminLoginScreen({ navigation }) {
                   autoCapitalize="none"
                   autoComplete="username"
                   editable={!isLocked}
+                  returnKeyType="next"
                 />
                 {attempts > 0 && (
                   <Text style={styles.attemptsWarning}>
@@ -238,6 +218,8 @@ export default function AdminLoginScreen({ navigation }) {
                     secureTextEntry={!showPassword}
                     autoComplete="password"
                     editable={!isLocked}
+                    returnKeyType="done"
+                    onSubmitEditing={handleAdminLogin}
                   />
                   <TouchableOpacity
                     style={styles.eyeButton}
