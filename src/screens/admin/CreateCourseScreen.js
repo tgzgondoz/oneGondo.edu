@@ -1,4 +1,4 @@
-// Update the CreateCourseScreen.js (simplified version)
+// Update the CreateCourseScreen.js (with fixes)
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -52,6 +52,7 @@ const CreateCourseScreen = ({ navigation, route }) => {
       }
     } catch (error) {
       console.error('Error loading course data:', error);
+      Alert.alert('Error', 'Failed to load course data');
     }
   };
 
@@ -119,6 +120,15 @@ const CreateCourseScreen = ({ navigation, route }) => {
       console.error('Error saving course:', error);
       Alert.alert('Error', `Failed to ${isEditMode ? 'update' : 'create'} course. Please try again.`);
     }
+  };
+
+  // Navigate to Add Section screen
+  const navigateToAddSection = () => {
+    if (!courseId && !isEditMode) {
+      Alert.alert('Error', 'Please save the course first before adding sections');
+      return;
+    }
+    navigation.navigate('AddSection', { courseId: courseId || '' });
   };
 
   return (
@@ -241,6 +251,19 @@ const CreateCourseScreen = ({ navigation, route }) => {
                 </>
               )}
             </TouchableOpacity>
+
+            {/* Upload Sections Button (visible in edit mode) */}
+            {isEditMode && (
+              <TouchableOpacity 
+                style={styles.uploadSectionsBtn}
+                onPress={navigateToAddSection}
+              >
+                <Ionicons name="cloud-upload" size={24} color="#fff" />
+                <Text style={styles.uploadSectionsBtnText}>
+                  Upload Sections & Content
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -308,12 +331,27 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     marginTop: 20,
-    marginBottom: 40,
   },
   disabledBtn: {
     backgroundColor: '#adb5bd',
   },
   createBtnText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+  uploadSectionsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#007bff',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 15,
+    marginBottom: 40,
+  },
+  uploadSectionsBtnText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
