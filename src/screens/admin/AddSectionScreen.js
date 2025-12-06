@@ -237,7 +237,7 @@ const AddSectionScreen = ({ navigation, route }) => {
   const resetLessonForm = () => {
     setNewLessonTitle('');
     setNewLessonContent('');
-    setNewLessonType(sectionType === 'quiz' || sectionType === 'test' ? 'quiz' : 'video');
+    setNewLessonType(sectionType === 'quiz' ? 'quiz' : 'video');
     setNewLessonDuration('');
     setNewLessonUrl('');
     setNewLessonQuizOptions(['', '', '', '']);
@@ -343,11 +343,6 @@ const AddSectionScreen = ({ navigation, route }) => {
         ...(sectionType === 'quiz' && {
           totalQuestions: lessons.length,
           passingScore: 70,
-        }),
-        ...(sectionType === 'test' && {
-          totalQuestions: lessons.length,
-          passingScore: 60,
-          timeLimit: 3600,
         }),
         ...(sectionType === 'video' && {
           totalDuration: calculateTotalDuration(),
@@ -507,7 +502,6 @@ const AddSectionScreen = ({ navigation, route }) => {
   const getSectionTypeIcon = (type) => {
     switch (type) {
       case 'quiz': return 'help-circle';
-      case 'test': return 'school';
       case 'video': return 'videocam';
       case 'document': return 'document-text';
       default: return 'folder';
@@ -517,7 +511,6 @@ const AddSectionScreen = ({ navigation, route }) => {
   const getSectionTypeColor = (type) => {
     switch (type) {
       case 'quiz': return '#ffc107';
-      case 'test': return '#dc3545';
       case 'video': return '#dc3545';
       case 'document': return '#28a745';
       default: return '#6c757d';
@@ -579,7 +572,7 @@ const AddSectionScreen = ({ navigation, route }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Section Type *</Text>
               <View style={styles.typeButtons}>
-                {['video', 'quiz', 'test', 'document'].map((type) => (
+                {['video', 'quiz', 'document'].map((type) => (
                   <TouchableOpacity
                     key={type}
                     style={[
@@ -649,9 +642,7 @@ const AddSectionScreen = ({ navigation, route }) => {
             <View style={styles.lessonsContainer}>
               <View style={styles.lessonsHeader}>
                 <Text style={styles.lessonsTitle}>
-                  {sectionType === 'quiz' ? 'Quiz Questions' : 
-                   sectionType === 'test' ? 'Test Questions' : 
-                   'Lessons'} ({lessons.length})
+                  {sectionType === 'quiz' ? 'Quiz Questions' : 'Lessons'} ({lessons.length})
                 </Text>
                 <TouchableOpacity 
                   style={styles.addLessonBtn} 
@@ -660,7 +651,7 @@ const AddSectionScreen = ({ navigation, route }) => {
                 >
                   <Ionicons name="add-circle" size={24} color="#007bff" />
                   <Text style={styles.addLessonText}>
-                    {sectionType === 'quiz' || sectionType === 'test' ? 'Add Question' : 'Add Lesson'}
+                    {sectionType === 'quiz' ? 'Add Question' : 'Add Lesson'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -718,17 +709,14 @@ const AddSectionScreen = ({ navigation, route }) => {
                 <View style={styles.emptyLessons}>
                   <Ionicons name={
                     sectionType === 'quiz' ? 'help-circle-outline' :
-                    sectionType === 'test' ? 'school-outline' :
                     sectionType === 'video' ? 'videocam-outline' :
                     'document-outline'
                   } size={48} color="#adb5bd" />
                   <Text style={styles.emptyLessonsText}>
-                    {sectionType === 'quiz' ? 'No quiz questions added yet.' :
-                     sectionType === 'test' ? 'No test questions added yet.' :
-                     'No lessons added yet.'}
+                    {sectionType === 'quiz' ? 'No quiz questions added yet.' : 'No lessons added yet.'}
                   </Text>
                   <Text style={styles.emptyLessonsSubText}>
-                    Click "Add {sectionType === 'quiz' || sectionType === 'test' ? 'Question' : 'Lesson'}" to create content.
+                    Click "Add {sectionType === 'quiz' ? 'Question' : 'Lesson'}" to create content.
                   </Text>
                 </View>
               )}
@@ -747,7 +735,6 @@ const AddSectionScreen = ({ navigation, route }) => {
                   <Ionicons name={isEditMode ? "save" : "folder-open"} size={24} color="#fff" />
                   <Text style={styles.createBtnText}>
                     {isEditMode ? 'Update' : 'Create'} {sectionType === 'quiz' ? 'Quiz' : 
-                           sectionType === 'test' ? 'Test' : 
                            sectionType === 'video' ? 'Video' : 
                            'Document'} Section
                   </Text>
@@ -770,7 +757,7 @@ const AddSectionScreen = ({ navigation, route }) => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {editingLessonId ? 'Edit Lesson' : 
-                 sectionType === 'quiz' || sectionType === 'test' ? 'Add Quiz Question' : 'Add Lesson'}
+                 sectionType === 'quiz' ? 'Add Quiz Question' : 'Add Lesson'}
               </Text>
               <TouchableOpacity onPress={resetLessonForm}>
                 <Ionicons name="close" size={24} color="#333" />
@@ -780,14 +767,14 @@ const AddSectionScreen = ({ navigation, route }) => {
             <ScrollView style={styles.modalScroll}>
               <View style={styles.modalInputGroup}>
                 <Text style={styles.modalLabel}>
-                  {sectionType === 'quiz' || sectionType === 'test' ? 'Question *' : 'Lesson Title *'}
+                  {sectionType === 'quiz' ? 'Question *' : 'Lesson Title *'}
                 </Text>
                 <TextInput
                   style={styles.modalInput}
                   value={newLessonTitle}
                   onChangeText={setNewLessonTitle}
                   placeholder={
-                    sectionType === 'quiz' || sectionType === 'test' ? 
+                    sectionType === 'quiz' ? 
                     "Enter question" : 
                     "Enter lesson title"
                   }
@@ -798,7 +785,7 @@ const AddSectionScreen = ({ navigation, route }) => {
               <View style={styles.modalInputGroup}>
                 <Text style={styles.modalLabel}>Lesson Type</Text>
                 <View style={styles.typeButtons}>
-                  {(sectionType === 'quiz' || sectionType === 'test' ? 
+                  {(sectionType === 'quiz' ? 
                     ['quiz'] : ['video', 'document', 'text']).map((type) => (
                     <TouchableOpacity
                       key={type}
@@ -927,7 +914,7 @@ const AddSectionScreen = ({ navigation, route }) => {
                     <Ionicons name={editingLessonId ? "save" : "add-circle"} size={24} color="#fff" />
                     <Text style={styles.modalAddButtonText}>
                       {editingLessonId ? 'Update Lesson' : 
-                      sectionType === 'quiz' || sectionType === 'test' ? 'Add Question' : 'Add Lesson'}
+                      sectionType === 'quiz' ? 'Add Question' : 'Add Lesson'}
                     </Text>
                   </>
                 )}
