@@ -31,11 +31,9 @@ export default function CourseMaterialsScreen({ navigation, route }) {
     try {
       setLoading(true);
       
-      // Use course title from params or load from Firebase
       if (paramCourseTitle) {
         setCourseTitle(paramCourseTitle);
       } else {
-        // Load course title from Firebase
         const courseRef = ref(db, `courses/${courseId}`);
         const courseSnapshot = await get(courseRef);
         if (courseSnapshot.exists()) {
@@ -43,7 +41,6 @@ export default function CourseMaterialsScreen({ navigation, route }) {
         }
       }
 
-      // Load all sections and their lessons
       const sectionsRef = ref(db, `courses/${courseId}/sections`);
       const sectionsSnapshot = await get(sectionsRef);
       
@@ -51,16 +48,13 @@ export default function CourseMaterialsScreen({ navigation, route }) {
         const sectionsData = sectionsSnapshot.val();
         let allMaterials = [];
         
-        // Process each section
         for (const [sectionId, sectionData] of Object.entries(sectionsData)) {
-          // Load lessons for this section
           const lessonsRef = ref(db, `courses/${courseId}/sections/${sectionId}/lessons`);
           const lessonsSnapshot = await get(lessonsRef);
           
           if (lessonsSnapshot.exists()) {
             const lessonsData = lessonsSnapshot.val();
             
-            // Filter for video and document lessons
             for (const [lessonId, lessonData] of Object.entries(lessonsData)) {
               if (lessonData.type === 'video' || lessonData.type === 'document') {
                 allMaterials.push({
@@ -76,7 +70,6 @@ export default function CourseMaterialsScreen({ navigation, route }) {
           }
         }
         
-        // Sort by section and lesson order
         allMaterials.sort((a, b) => {
           if (a.order !== b.order) return a.order - b.order;
           return a.title.localeCompare(b.title);
@@ -94,12 +87,12 @@ export default function CourseMaterialsScreen({ navigation, route }) {
     }
   };
 
-  // FIXED: Pass the URL parameter to the function
-  const getMaterialIcon = (type, url) => {
+  // FIXED: Handle undefined url parameter
+  const getMaterialIcon = (type, url = '') => {
     switch (type) {
       case 'video': return 'videocam';
       case 'document':
-        const fileType = getFileTypeFromUrl(url); // Use the passed URL parameter
+        const fileType = getFileTypeFromUrl(url);
         switch (fileType) {
           case 'pdf': return 'document-text';
           case 'word': return 'document-text';
@@ -111,26 +104,24 @@ export default function CourseMaterialsScreen({ navigation, route }) {
     }
   };
 
-  const getMaterialColor = (type) => {
-    switch (type) {
-      case 'video': return '#dc3545';
-      case 'document': return '#17a2b8';
-      default: return '#6c757d';
+  // FIXED: Handle undefined or non-string url
+  const getFileTypeFromUrl = (url = '') => {
+    if (!url || typeof url !== 'string' || url.trim() === '') return 'unknown';
+    try {
+      const extension = url.split('.').pop().toLowerCase();
+      if (['pdf'].includes(extension)) return 'pdf';
+      if (['doc', 'docx'].includes(extension)) return 'word';
+      if (['ppt', 'pptx'].includes(extension)) return 'powerpoint';
+      if (['xls', 'xlsx'].includes(extension)) return 'excel';
+      if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(extension)) return 'video';
+      return 'file';
+    } catch (error) {
+      return 'unknown';
     }
   };
 
-  const getFileTypeFromUrl = (url) => {
-    if (!url) return 'unknown';
-    const extension = url.split('.').pop().toLowerCase();
-    if (['pdf'].includes(extension)) return 'pdf';
-    if (['doc', 'docx'].includes(extension)) return 'word';
-    if (['ppt', 'pptx'].includes(extension)) return 'powerpoint';
-    if (['xls', 'xlsx'].includes(extension)) return 'excel';
-    if (['mp4', 'mov', 'avi', 'mkv'].includes(extension)) return 'video';
-    return 'file';
-  };
-
-  const getFileTypeName = (url) => {
+  // FIXED: Handle undefined url
+  const getFileTypeName = (url = '') => {
     const type = getFileTypeFromUrl(url);
     switch (type) {
       case 'pdf': return 'PDF Document';
@@ -142,14 +133,19 @@ export default function CourseMaterialsScreen({ navigation, route }) {
     }
   };
 
+  // FIXED: Check if material.url exists
   const handleOpenMaterial = async (material) => {
+    if (!material.url) {
+      Alert.alert('Error', 'This material is not available or has no URL');
+      return;
+    }
+
     if (material.type === 'video') {
-      // For videos, check if it's a YouTube URL
-      if (material.url.includes('youtube.com') || material.url.includes('youtu.be')) {
-        // Open in YouTube app or browser
-        const youtubeUrl = material.url.includes('youtube.com') 
-          ? material.url 
-          : `https://youtube.com/watch?v=${material.url.split('/').pop()}`;
+      const url = material.url || '';
+      if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        const youtubeUrl = url.includes('youtube.com') 
+          ? url 
+          : `https://youtube.com/watch?v=${url.split('/').pop()}`;
         
         try {
           const supported = await Linking.canOpenURL(youtubeUrl);
@@ -163,7 +159,6 @@ export default function CourseMaterialsScreen({ navigation, route }) {
           Alert.alert('Error', 'Failed to open video');
         }
       } else {
-        // For other videos, navigate to video player
         navigation.navigate('VideoPlayer', {
           videoUrl: material.url,
           title: material.title,
@@ -172,7 +167,6 @@ export default function CourseMaterialsScreen({ navigation, route }) {
         });
       }
     } else if (material.type === 'document') {
-      // For documents, open in browser or PDF viewer
       try {
         const supported = await Linking.canOpenURL(material.url);
         if (supported) {
@@ -261,17 +255,17 @@ export default function CourseMaterialsScreen({ navigation, route }) {
                     onPress={() => handleOpenMaterial(material)}
                   >
                     <View style={styles.materialIcon}>
-                      {/* FIXED: Pass material.url to getMaterialIcon */}
+                      {/* FIXED: Pass material.url with default value */}
                       <Ionicons 
-                        name={getMaterialIcon(material.type, material.url)} 
+                        name={getMaterialIcon(material.type, material.url || '')} 
                         size={24} 
-                        color={getMaterialColor(material.type)} 
+                        color={material.type === 'video' ? '#dc3545' : '#17a2b8'} 
                       />
                     </View>
                     <View style={styles.materialInfo}>
                       <Text style={styles.materialTitle}>{material.title}</Text>
                       <Text style={styles.materialType}>
-                        {material.type === 'video' ? 'Video' : getFileTypeName(material.url)}
+                        {material.type === 'video' ? 'Video' : getFileTypeName(material.url || '')}
                       </Text>
                       {material.duration && (
                         <Text style={styles.materialDuration}>

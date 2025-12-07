@@ -7,11 +7,12 @@ import {
   SafeAreaView,
   StyleSheet,
   ActivityIndicator,
-  Alert
+  Alert,
+  RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getDatabase, ref, get } from 'firebase/database';
-import { getAuth } from 'firebase/auth';
+import { getDatabase, ref, onValue, off, get } from 'firebase/database'; // Added get back
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 export default function DashboardScreen({ navigation }) {
   const [courses, setCourses] = useState([]);
@@ -22,98 +23,168 @@ export default function DashboardScreen({ navigation }) {
     certificates: 0
   });
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [userName, setUserName] = useState('Student');
 
   const db = getDatabase();
   const auth = getAuth();
-  const userId = auth.currentUser?.uid;
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+        loadUserData(user.uid);
+      } else {
+        setUserId(null);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+      // Cleanup database listeners
+      if (userId) {
+        const userRef = ref(db, `users/${userId}`);
+        off(userRef);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (userId) {
-      loadDashboardData();
+      setupRealtimeListeners();
     }
   }, [userId]);
 
-  const loadDashboardData = async () => {
+  const loadUserData = (uid) => {
+    const userRef = ref(db, `users/${uid}`);
+    onValue(userRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        setUserName(userData.name || userData.email?.split('@')[0] || 'Student');
+      }
+    });
+  };
+
+  const setupRealtimeListeners = () => {
+    if (!userId) return;
+
+    // Listen to enrolled courses changes
+    const enrolledRef = ref(db, `users/${userId}/enrolledCourses`);
+    onValue(enrolledRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const enrolledData = snapshot.val();
+        loadCoursesData(enrolledData);
+      } else {
+        setCourses([]);
+        setStats({
+          totalCourses: 0,
+          completedCourses: 0,
+          totalHours: 0,
+          certificates: 0
+        });
+        setLoading(false);
+      }
+    }, {
+      onlyOnce: false // Keep listening for changes
+    });
+  };
+
+  const loadCoursesData = async (enrolledData) => {
     try {
-      setLoading(true);
-      
-      // Load user data
-      if (userId) {
-        const userRef = ref(db, `users/${userId}`);
-        const userSnapshot = await get(userRef);
-        if (userSnapshot.exists()) {
-          const userData = userSnapshot.val();
-          setUserName(userData.name || userData.email?.split('@')[0] || 'Student');
-        }
-      }
+      const coursesArray = [];
+      let completedCourses = 0;
+      let totalHours = 0;
 
-      // Load enrolled courses
-      if (userId) {
-        const enrolledRef = ref(db, `users/${userId}/enrolledCourses`);
-        const enrolledSnapshot = await get(enrolledRef);
+      // Load all enrolled courses
+      const coursePromises = Object.entries(enrolledData).map(async ([courseId, enrollment]) => {
+        const courseRef = ref(db, `courses/${courseId}`);
+        const progressRef = ref(db, `users/${userId}/progress/${courseId}`);
+
+        // Get course data
+        const courseSnapshot = await get(courseRef);
+        if (!courseSnapshot.exists()) return null;
+
+        const courseData = courseSnapshot.val();
         
-        if (enrolledSnapshot.exists()) {
-          const enrolledData = enrolledSnapshot.val();
-          const coursesArray = [];
-          let completedCourses = 0;
-          let totalHours = 0;
-
-          // Load course details for each enrolled course
-          for (const [courseId, enrollment] of Object.entries(enrolledData)) {
-            const courseRef = ref(db, `courses/${courseId}`);
-            const courseSnapshot = await get(courseRef);
-            
-            if (courseSnapshot.exists()) {
-              const courseData = courseSnapshot.val();
-              
-              // Load progress
-              const progressRef = ref(db, `users/${userId}/progress/${courseId}`);
-              const progressSnapshot = await get(progressRef);
-              
-              let progress = 0;
-              if (progressSnapshot.exists()) {
-                const progressData = progressSnapshot.val();
-                progress = progressData.overallProgress || 0;
-                
-                if (progress >= 100) {
-                  completedCourses++;
-                }
-              }
-
-              // Calculate course hours
-              const courseHours = courseData.totalHours || 
-                (courseData.duration ? parseInt(courseData.duration) : 0);
-              totalHours += courseHours;
-
-              coursesArray.push({
-                id: courseId,
-                title: courseData.title || 'Untitled Course',
-                progress: progress,
-                instructor: courseData.instructor,
-                icon: getCourseIcon(courseData),
-                courseHours: courseHours
-              });
-            }
+        // Get progress
+        let progress = 0;
+        const progressSnapshot = await get(progressRef);
+        if (progressSnapshot.exists()) {
+          const progressData = progressSnapshot.val();
+          progress = progressData.overallProgress || 0;
+          if (progress >= 100) {
+            completedCourses++;
           }
-
-          setCourses(coursesArray);
-          setStats(prev => ({
-            ...prev,
-            totalCourses: coursesArray.length,
-            completedCourses: completedCourses,
-            totalHours: totalHours,
-            certificates: completedCourses
-          }));
         }
-      }
 
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      Alert.alert('Error', 'Failed to load dashboard data');
-    } finally {
+        // Calculate course hours
+        const courseHours = courseData.totalHours || 
+          (courseData.duration ? parseInt(courseData.duration) : 0);
+        totalHours += courseHours;
+
+        return {
+          id: courseId,
+          title: courseData.title || 'Untitled Course',
+          progress: progress,
+          instructor: courseData.instructor,
+          icon: getCourseIcon(courseData),
+          courseHours: courseHours
+        };
+      });
+
+      const results = await Promise.all(coursePromises);
+      const validCourses = results.filter(course => course !== null);
+      
+      // Sort by progress (descending) to show ongoing courses first
+      validCourses.sort((a, b) => {
+        if (a.progress === b.progress) return 0;
+        if (a.progress === 100) return 1; // Completed courses at the end
+        if (b.progress === 100) return -1;
+        return b.progress - a.progress; // Higher progress first
+      });
+
+      setCourses(validCourses);
+      setStats({
+        totalCourses: validCourses.length,
+        completedCourses: completedCourses,
+        totalHours: totalHours,
+        certificates: completedCourses
+      });
       setLoading(false);
+      setRefreshing(false);
+    } catch (error) {
+      console.error('Error loading courses data:', error);
+      Alert.alert('Error', 'Failed to load courses data');
+      setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const updateCourseProgress = (courseId, progressData) => {
+    setCourses(prevCourses => {
+      const updatedCourses = prevCourses.map(course => {
+        if (course.id === courseId) {
+          const newProgress = progressData.overallProgress || 0;
+          return {
+            ...course,
+            progress: newProgress
+          };
+        }
+        return course;
+      });
+
+      // Update stats based on updated courses
+      const completedCoursesCount = updatedCourses.filter(course => course.progress >= 100).length;
+      setStats(prevStats => ({
+        ...prevStats,
+        completedCourses: completedCoursesCount,
+        certificates: completedCoursesCount
+      }));
+
+      return updatedCourses;
+    });
   };
 
   const getCourseIcon = (course) => {
@@ -139,7 +210,31 @@ export default function DashboardScreen({ navigation }) {
     });
   };
 
-  if (loading) {
+  const handleRefresh = () => {
+    if (userId) {
+      setRefreshing(true);
+      const enrolledRef = ref(db, `users/${userId}/enrolledCourses`);
+      get(enrolledRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          loadCoursesData(snapshot.val());
+        } else {
+          setCourses([]);
+          setStats({
+            totalCourses: 0,
+            completedCourses: 0,
+            totalHours: 0,
+            certificates: 0
+          });
+          setRefreshing(false);
+        }
+      }).catch(error => {
+        console.error('Error refreshing:', error);
+        setRefreshing(false);
+      });
+    }
+  };
+
+  if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -152,7 +247,16 @@ export default function DashboardScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView 
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#2E86AB']}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.greeting}>Welcome back, {userName}!</Text>
@@ -183,7 +287,13 @@ export default function DashboardScreen({ navigation }) {
           
           <TouchableOpacity 
             style={styles.statCard}
-            onPress={() => navigation.navigate('Courses', { initialTab: 'completed' })}
+            onPress={() => {
+              // Navigate to enrolled courses and filter completed ones
+              navigation.navigate('Courses', { 
+                initialTab: 'enrolled',
+                showCompletedOnly: true 
+              });
+            }}
           >
             <Ionicons name="trophy" size={24} color="#2E86AB" />
             <Text style={styles.statNumber}>{stats.certificates}</Text>
@@ -243,7 +353,7 @@ export default function DashboardScreen({ navigation }) {
           )}
         </View>
 
-        {/* Quick Actions - Simplified to only Browse Courses */}
+        {/* Quick Actions */}
         <View style={styles.quickActionsSection}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActionsGrid}>

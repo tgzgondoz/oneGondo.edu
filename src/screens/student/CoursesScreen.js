@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getDatabase, ref, get, set } from 'firebase/database'; // Removed unused imports
+import { getDatabase, ref, get, set } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
 
 export default function CoursesScreen({ navigation }) {
@@ -23,7 +23,7 @@ export default function CoursesScreen({ navigation }) {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [showCourseDetails, setShowCourseDetails] = useState(false);
   const [userProgress, setUserProgress] = useState({});
-  const [activeTab, setActiveTab] = useState('available'); // 'available', 'enrolled'
+  const [activeTab, setActiveTab] = useState('available');
 
   const db = getDatabase();
   const auth = getAuth();
@@ -34,9 +34,6 @@ export default function CoursesScreen({ navigation }) {
       loadCourses();
       loadEnrolledCourses();
     }
-    return () => {
-      // Cleanup - nothing needed since we're not using onValue listener
-    };
   }, [userId]);
 
   const loadCourses = async () => {
@@ -50,7 +47,7 @@ export default function CoursesScreen({ navigation }) {
         const coursesArray = Object.keys(coursesData).map(key => ({
           id: key,
           ...coursesData[key],
-          enrolled: false // Will be updated by enrolledCourses
+          enrolled: false
         }));
         setCourses(coursesArray);
       } else {
@@ -80,7 +77,6 @@ export default function CoursesScreen({ navigation }) {
         }));
         setEnrolledCourses(enrolledArray);
         
-        // Load progress for each enrolled course
         enrolledArray.forEach(course => {
           loadCourseProgress(course.courseId);
         });
@@ -100,7 +96,6 @@ export default function CoursesScreen({ navigation }) {
       if (snapshot.exists()) {
         const progressData = snapshot.val();
         
-        // Calculate overall progress
         const sections = Object.values(progressData.sections || {});
         const totalLessons = sections.reduce((total, section) => 
           total + (section.totalLessons || 0), 0
@@ -145,14 +140,12 @@ export default function CoursesScreen({ navigation }) {
     try {
       setLoading(true);
       
-      // Check if already enrolled
       const alreadyEnrolled = enrolledCourses.find(ec => ec.courseId === course.id);
       if (alreadyEnrolled) {
         Alert.alert('Info', 'You are already enrolled in this course');
         return;
       }
       
-      // Add to user's enrolled courses
       const enrolledRef = ref(db, `users/${userId}/enrolledCourses/${course.id}`);
       await set(enrolledRef, {
         enrolledDate: Date.now(),
@@ -161,7 +154,6 @@ export default function CoursesScreen({ navigation }) {
         courseDuration: course.duration || 'Unknown'
       });
       
-      // Initialize progress
       const progressRef = ref(db, `users/${userId}/progress/${course.id}`);
       await set(progressRef, {
         enrolledDate: Date.now(),
@@ -170,7 +162,6 @@ export default function CoursesScreen({ navigation }) {
         overallProgress: 0
       });
       
-      // Update local state
       const newEnrollment = {
         courseId: course.id,
         enrolledDate: Date.now(),
@@ -205,8 +196,13 @@ export default function CoursesScreen({ navigation }) {
     }
   };
 
-  // UPDATED NAVIGATION FUNCTION
+  // FIXED: Added null check for courseId
   const navigateToCourse = (courseId, courseTitle) => {
+    if (!courseId) {
+      Alert.alert('Error', 'Course information is missing');
+      return;
+    }
+    
     navigation.navigate('CourseDetail', { 
       courseId,
       courseTitle: courseTitle || 'Course Details'
@@ -235,7 +231,6 @@ export default function CoursesScreen({ navigation }) {
   };
 
   const getIconForCourse = (course) => {
-    // Map course categories to icons
     const category = course.category?.toLowerCase() || course.title?.toLowerCase();
     
     if (category.includes('math')) return 'calculator';
@@ -291,7 +286,6 @@ export default function CoursesScreen({ navigation }) {
           />
         }
       >
-        {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>Courses</Text>
@@ -311,7 +305,6 @@ export default function CoursesScreen({ navigation }) {
           )}
         </View>
 
-        {/* Tabs */}
         <View style={styles.tabContainer}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'available' && styles.activeTab]}
@@ -348,10 +341,8 @@ export default function CoursesScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Courses List */}
         <View style={styles.coursesContainer}>
           {activeTab === 'available' ? (
-            // Available Courses
             getAvailableCourses().length > 0 ? (
               getAvailableCourses().map((course) => (
                 <TouchableOpacity 
@@ -417,7 +408,6 @@ export default function CoursesScreen({ navigation }) {
               </View>
             )
           ) : (
-            // Enrolled Courses
             getEnrolledCourses().length > 0 ? (
               getEnrolledCourses().map((course) => (
                 <TouchableOpacity 
@@ -448,7 +438,6 @@ export default function CoursesScreen({ navigation }) {
                     </View>
                   </View>
                   
-                  {/* Progress Section */}
                   <View style={styles.progressSection}>
                     <View style={styles.progressHeader}>
                       <Text style={styles.progressLabel}>Your Progress</Text>
@@ -481,7 +470,6 @@ export default function CoursesScreen({ navigation }) {
                         </Text>
                       </TouchableOpacity>
                       
-                      {/* UPDATED: Course Materials navigation */}
                       <TouchableOpacity 
                         style={[styles.actionButton, styles.secondaryButton]}
                         onPress={() => navigation.navigate('CourseMaterials', { 
@@ -495,7 +483,6 @@ export default function CoursesScreen({ navigation }) {
                         </Text>
                       </TouchableOpacity>
                       
-                      {/* UPDATED: QuizAttempts navigation */}
                       <TouchableOpacity 
                         style={[styles.actionButton, styles.secondaryButton]}
                         onPress={() => navigation.navigate('QuizAttempts', { 
@@ -531,7 +518,6 @@ export default function CoursesScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      {/* Course Details Modal */}
       <Modal
         visible={showCourseDetails}
         transparent={true}
@@ -903,7 +889,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
