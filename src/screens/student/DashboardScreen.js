@@ -7,239 +7,179 @@ import {
   SafeAreaView,
   StyleSheet,
   ActivityIndicator,
-  Alert,
-  RefreshControl
+  RefreshControl,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getDatabase, ref, onValue, off, get } from 'firebase/database'; // Added get back
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getDatabase, ref, onValue } from 'firebase/database';
+import { getAuth } from 'firebase/auth';
 
-export default function DashboardScreen({ navigation }) {
+export default function CoreDashboardScreen({ navigation }) {
   const [courses, setCourses] = useState([]);
-  const [stats, setStats] = useState({
-    totalCourses: 0,
-    completedCourses: 0,
-    totalHours: 0,
-    certificates: 0
-  });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [userName, setUserName] = useState('Student');
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [stats, setStats] = useState({
+    enrolled: 0,
+    completed: 0,
+    inProgress: 0
+  });
 
-  const db = getDatabase();
   const auth = getAuth();
-  const [userId, setUserId] = useState(null);
+  const db = getDatabase();
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserId(user.uid);
-        loadUserData(user.uid);
-      } else {
-        setUserId(null);
-        setLoading(false);
-      }
-    });
-
+    loadUserData();
     return () => {
-      unsubscribeAuth();
-      // Cleanup database listeners
-      if (userId) {
-        const userRef = ref(db, `users/${userId}`);
-        off(userRef);
-      }
+      // Cleanup listeners if needed
     };
   }, []);
 
-  useEffect(() => {
-    if (userId) {
-      setupRealtimeListeners();
+  const loadUserData = () => {
+    const user = auth.currentUser;
+    if (!user) {
+      navigation.replace('Login');
+      return;
     }
-  }, [userId]);
 
-  const loadUserData = (uid) => {
-    const userRef = ref(db, `users/${uid}`);
-    onValue(userRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const userData = snapshot.val();
-        setUserName(userData.name || userData.email?.split('@')[0] || 'Student');
-      }
-    });
+    // Set basic user info
+    setUserName(user.displayName || user.email?.split('@')[0] || 'Student');
+    setUserEmail(user.email || '');
+    
+    // Load enrolled courses
+    loadEnrolledCourses(user.uid);
   };
 
-  const setupRealtimeListeners = () => {
-    if (!userId) return;
-
-    // Listen to enrolled courses changes
+  const loadEnrolledCourses = (userId) => {
+    setLoading(true);
+    
     const enrolledRef = ref(db, `users/${userId}/enrolledCourses`);
-    onValue(enrolledRef, (snapshot) => {
+    
+    const unsubscribe = onValue(enrolledRef, (snapshot) => {
       if (snapshot.exists()) {
         const enrolledData = snapshot.val();
-        loadCoursesData(enrolledData);
+        const courseIds = Object.keys(enrolledData);
+        
+        // Load course details for each enrolled course
+        Promise.all(
+          courseIds.map(courseId => 
+            getCourseDetails(courseId, enrolledData[courseId])
+          )
+        ).then(coursesData => {
+          const validCourses = coursesData.filter(course => course !== null);
+          
+          // Calculate stats
+          const completed = validCourses.filter(c => c.progress === 100).length;
+          const inProgress = validCourses.filter(c => c.progress > 0 && c.progress < 100).length;
+          
+          setStats({
+            enrolled: validCourses.length,
+            completed: completed,
+            inProgress: inProgress
+          });
+          
+          // Sort courses: in-progress first, then not started, then completed
+          validCourses.sort((a, b) => {
+            if (a.progress === 100 && b.progress < 100) return 1;
+            if (a.progress < 100 && b.progress === 100) return -1;
+            return b.progress - a.progress;
+          });
+          
+          setCourses(validCourses);
+          setLoading(false);
+          setRefreshing(false);
+        });
       } else {
         setCourses([]);
-        setStats({
-          totalCourses: 0,
-          completedCourses: 0,
-          totalHours: 0,
-          certificates: 0
-        });
+        setStats({ enrolled: 0, completed: 0, inProgress: 0 });
         setLoading(false);
+        setRefreshing(false);
       }
-    }, {
-      onlyOnce: false // Keep listening for changes
     });
+
+    return unsubscribe;
   };
 
-  const loadCoursesData = async (enrolledData) => {
+  const getCourseDetails = async (courseId, enrollment) => {
     try {
-      const coursesArray = [];
-      let completedCourses = 0;
-      let totalHours = 0;
-
-      // Load all enrolled courses
-      const coursePromises = Object.entries(enrolledData).map(async ([courseId, enrollment]) => {
-        const courseRef = ref(db, `courses/${courseId}`);
-        const progressRef = ref(db, `users/${userId}/progress/${courseId}`);
-
-        // Get course data
-        const courseSnapshot = await get(courseRef);
-        if (!courseSnapshot.exists()) return null;
-
-        const courseData = courseSnapshot.val();
-        
-        // Get progress
-        let progress = 0;
-        const progressSnapshot = await get(progressRef);
-        if (progressSnapshot.exists()) {
-          const progressData = progressSnapshot.val();
-          progress = progressData.overallProgress || 0;
-          if (progress >= 100) {
-            completedCourses++;
-          }
-        }
-
-        // Calculate course hours
-        const courseHours = courseData.totalHours || 
-          (courseData.duration ? parseInt(courseData.duration) : 0);
-        totalHours += courseHours;
-
+      const courseRef = ref(db, `courses/${courseId}`);
+      const snapshot = await new Promise((resolve) => {
+        onValue(courseRef, resolve, { onlyOnce: true });
+      });
+      
+      if (snapshot.exists()) {
+        const courseData = snapshot.val();
         return {
           id: courseId,
           title: courseData.title || 'Untitled Course',
-          progress: progress,
-          instructor: courseData.instructor,
-          icon: getCourseIcon(courseData),
-          courseHours: courseHours
+          progress: enrollment.progress || 0,
+          category: courseData.category || 'General',
+          instructor: courseData.instructor || 'Unknown Instructor',
+          color: getCourseColor(courseData.category)
         };
-      });
-
-      const results = await Promise.all(coursePromises);
-      const validCourses = results.filter(course => course !== null);
-      
-      // Sort by progress (descending) to show ongoing courses first
-      validCourses.sort((a, b) => {
-        if (a.progress === b.progress) return 0;
-        if (a.progress === 100) return 1; // Completed courses at the end
-        if (b.progress === 100) return -1;
-        return b.progress - a.progress; // Higher progress first
-      });
-
-      setCourses(validCourses);
-      setStats({
-        totalCourses: validCourses.length,
-        completedCourses: completedCourses,
-        totalHours: totalHours,
-        certificates: completedCourses
-      });
-      setLoading(false);
-      setRefreshing(false);
+      }
+      return null;
     } catch (error) {
-      console.error('Error loading courses data:', error);
-      Alert.alert('Error', 'Failed to load courses data');
-      setLoading(false);
-      setRefreshing(false);
+      console.error('Error loading course:', error);
+      return null;
     }
   };
 
-  const updateCourseProgress = (courseId, progressData) => {
-    setCourses(prevCourses => {
-      const updatedCourses = prevCourses.map(course => {
-        if (course.id === courseId) {
-          const newProgress = progressData.overallProgress || 0;
-          return {
-            ...course,
-            progress: newProgress
-          };
-        }
-        return course;
-      });
-
-      // Update stats based on updated courses
-      const completedCoursesCount = updatedCourses.filter(course => course.progress >= 100).length;
-      setStats(prevStats => ({
-        ...prevStats,
-        completedCourses: completedCoursesCount,
-        certificates: completedCoursesCount
-      }));
-
-      return updatedCourses;
-    });
-  };
-
-  const getCourseIcon = (course) => {
-    const category = course.category?.toLowerCase() || course.title?.toLowerCase();
+  const getCourseColor = (category) => {
+    const colors = {
+      'Math': '#FF6B6B',
+      'Science': '#4ECDC4',
+      'Programming': '#45B7D1',
+      'English': '#96CEB4',
+      'History': '#FFEAA7',
+      'Art': '#DDA0DD',
+      'Business': '#98D8C8',
+      'Music': '#F7DC6F',
+      'default': '#2E86AB'
+    };
     
-    if (category.includes('math')) return 'calculator';
-    if (category.includes('science')) return 'flask';
-    if (category.includes('english') || category.includes('literature')) return 'book';
-    if (category.includes('computer') || category.includes('programming') || category.includes('code')) return 'code';
-    if (category.includes('art') || category.includes('design')) return 'color-palette';
-    if (category.includes('history')) return 'time';
-    if (category.includes('business')) return 'business';
-    if (category.includes('music')) return 'musical-notes';
-    if (category.includes('language')) return 'language';
+    if (!category) return colors.default;
     
-    return 'school';
-  };
-
-  const handleCoursePress = (courseId, courseTitle) => {
-    navigation.navigate('CourseDetail', { 
-      courseId,
-      courseTitle: courseTitle || 'Course Details'
-    });
+    for (const [key, color] of Object.entries(colors)) {
+      if (category.toLowerCase().includes(key.toLowerCase())) {
+        return color;
+      }
+    }
+    
+    return colors.default;
   };
 
   const handleRefresh = () => {
-    if (userId) {
-      setRefreshing(true);
-      const enrolledRef = ref(db, `users/${userId}/enrolledCourses`);
-      get(enrolledRef).then((snapshot) => {
-        if (snapshot.exists()) {
-          loadCoursesData(snapshot.val());
-        } else {
-          setCourses([]);
-          setStats({
-            totalCourses: 0,
-            completedCourses: 0,
-            totalHours: 0,
-            certificates: 0
-          });
-          setRefreshing(false);
-        }
-      }).catch(error => {
-        console.error('Error refreshing:', error);
-        setRefreshing(false);
-      });
-    }
+    setRefreshing(true);
+    loadUserData();
   };
 
-  if (loading && !refreshing) {
+  const handleCoursePress = (course) => {
+    navigation.navigate('CourseDetail', {
+      courseId: course.id,
+      courseTitle: course.title
+    });
+  };
+
+  const handleLogout = () => {
+    auth.signOut()
+      .then(() => navigation.replace('Login'))
+      .catch(error => console.error('Logout error:', error));
+  };
+
+  const getProgressText = (progress) => {
+    if (progress === 0) return 'Not Started';
+    if (progress === 100) return 'Completed';
+    return `${progress}% Complete`;
+  };
+
+  if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E86AB" />
-          <Text style={styles.loadingText}>Loading dashboard...</Text>
+          <Text style={styles.loadingText}>Loading your dashboard...</Text>
         </View>
       </SafeAreaView>
     );
@@ -247,7 +187,7 @@ export default function DashboardScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         refreshControl={
           <RefreshControl
@@ -257,97 +197,131 @@ export default function DashboardScreen({ navigation }) {
           />
         }
       >
-        {/* Header */}
+        {/* Header with User Info */}
         <View style={styles.header}>
-          <Text style={styles.greeting}>Welcome back, {userName}!</Text>
-          <Text style={styles.date}>{new Date().toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}</Text>
-        </View>
-
-        {/* Stats Cards */}
-        <View style={styles.statsContainer}>
-          <TouchableOpacity 
-            style={styles.statCard}
-            onPress={() => navigation.navigate('Courses', { initialTab: 'enrolled' })}
-          >
-            <Ionicons name="book" size={24} color="#2E86AB" />
-            <Text style={styles.statNumber}>{stats.totalCourses}</Text>
-            <Text style={styles.statLabel}>Courses</Text>
-          </TouchableOpacity>
-          
-          <View style={styles.statCard}>
-            <Ionicons name="time" size={24} color="#2E86AB" />
-            <Text style={styles.statNumber}>{stats.totalHours}</Text>
-            <Text style={styles.statLabel}>Hours</Text>
+          <View style={styles.userInfo}>
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>
+                {userName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.userDetails}>
+              <Text style={styles.greeting}>Welcome back</Text>
+              <Text style={styles.userName}>{userName}</Text>
+              <Text style={styles.userEmail}>{userEmail}</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={22} color="#6c757d" />
+            </TouchableOpacity>
           </View>
-          
-          <TouchableOpacity 
-            style={styles.statCard}
-            onPress={() => {
-              // Navigate to enrolled courses and filter completed ones
-              navigation.navigate('Courses', { 
-                initialTab: 'enrolled',
-                showCompletedOnly: true 
-              });
-            }}
-          >
-            <Ionicons name="trophy" size={24} color="#2E86AB" />
-            <Text style={styles.statNumber}>{stats.certificates}</Text>
-            <Text style={styles.statLabel}>Certificates</Text>
-          </TouchableOpacity>
         </View>
 
-        {/* Ongoing Courses */}
-        <View style={styles.section}>
+        {/* Stats Overview */}
+        <View style={styles.statsSection}>
+          <Text style={styles.sectionTitle}>Learning Overview</Text>
+          <View style={styles.statsGrid}>
+            <View style={[styles.statCard, { backgroundColor: '#E3F2FD' }]}>
+              <Ionicons name="book-outline" size={28} color="#1976D2" />
+              <Text style={[styles.statNumber, { color: '#1976D2' }]}>
+                {stats.enrolled}
+              </Text>
+              <Text style={styles.statLabel}>Enrolled</Text>
+            </View>
+            
+            <View style={[styles.statCard, { backgroundColor: '#E8F5E9' }]}>
+              <Ionicons name="play-circle-outline" size={28} color="#388E3C" />
+              <Text style={[styles.statNumber, { color: '#388E3C' }]}>
+                {stats.inProgress}
+              </Text>
+              <Text style={styles.statLabel}>In Progress</Text>
+            </View>
+            
+            <View style={[styles.statCard, { backgroundColor: '#FFF3E0' }]}>
+              <Ionicons name="checkmark-circle-outline" size={28} color="#F57C00" />
+              <Text style={[styles.statNumber, { color: '#F57C00' }]}>
+                {stats.completed}
+              </Text>
+              <Text style={styles.statLabel}>Completed</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* My Courses */}
+        <View style={styles.coursesSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Ongoing Courses</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Courses', { initialTab: 'enrolled' })}>
-              <Text style={styles.seeAllText}>See All</Text>
+            <Text style={styles.sectionTitle}>My Courses</Text>
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('Courses')}
+              style={styles.seeAllButton}
+            >
+              <Text style={styles.seeAllText}>Browse All</Text>
+              <Ionicons name="chevron-forward" size={16} color="#2E86AB" />
             </TouchableOpacity>
           </View>
           
           {courses.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="book-outline" size={48} color="#adb5bd" />
-              <Text style={styles.emptyStateText}>No courses enrolled yet</Text>
-              <TouchableOpacity 
-                style={styles.browseButton}
+              <Ionicons name="book-outline" size={60} color="#ddd" />
+              <Text style={styles.emptyStateTitle}>No courses yet</Text>
+              <Text style={styles.emptyStateText}>
+                Enroll in courses to start learning
+              </Text>
+              <TouchableOpacity
+                style={styles.enrollButton}
                 onPress={() => navigation.navigate('Courses')}
               >
-                <Text style={styles.browseButtonText}>Browse Courses</Text>
+                <Text style={styles.enrollButtonText}>Browse Courses</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            courses.slice(0, 4).map((course) => (
-              <TouchableOpacity 
-                key={course.id} 
+            courses.slice(0, 5).map((course) => (
+              <TouchableOpacity
+                key={course.id}
                 style={styles.courseCard}
-                onPress={() => handleCoursePress(course.id, course.title)}
+                onPress={() => handleCoursePress(course)}
               >
-                <View style={styles.courseHeader}>
-                  <View style={styles.courseIcon}>
-                    <Ionicons name={course.icon} size={24} color="#2E86AB" />
-                  </View>
-                  <View style={styles.courseInfo}>
-                    <Text style={styles.courseTitle} numberOfLines={1}>{course.title}</Text>
-                    <Text style={styles.courseInstructor}>{course.instructor || 'Unknown Instructor'}</Text>
+                <View style={[styles.courseIcon, { backgroundColor: course.color + '20' }]}>
+                  <Ionicons 
+                    name={getCourseIcon(course.category)} 
+                    size={24} 
+                    color={course.color} 
+                  />
+                </View>
+                
+                <View style={styles.courseInfo}>
+                  <Text style={styles.courseTitle} numberOfLines={1}>
+                    {course.title}
+                  </Text>
+                  <Text style={styles.courseInstructor} numberOfLines={1}>
+                    {course.instructor}
+                  </Text>
+                  <View style={styles.progressRow}>
+                    <View style={styles.progressBar}>
+                      <View 
+                        style={[
+                          styles.progressFill, 
+                          { 
+                            width: `${course.progress}%`,
+                            backgroundColor: course.color
+                          }
+                        ]} 
+                      />
+                    </View>
+                    <Text style={styles.progressText}>
+                      {getProgressText(course.progress)}
+                    </Text>
                   </View>
                 </View>
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View 
-                      style={[
-                        styles.progressFill, 
-                        { width: `${course.progress}%` }
-                      ]} 
-                    />
-                  </View>
-                  <Text style={styles.progressText}>{course.progress}%</Text>
-                </View>
+                
+                <Ionicons 
+                  name="chevron-forward" 
+                  size={20} 
+                  color="#ccc" 
+                  style={styles.chevron}
+                />
               </TouchableOpacity>
             ))
           )}
@@ -357,20 +331,49 @@ export default function DashboardScreen({ navigation }) {
         <View style={styles.quickActionsSection}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActionsGrid}>
-            <TouchableOpacity 
-              style={styles.quickAction}
+            <TouchableOpacity
+              style={styles.actionCard}
               onPress={() => navigation.navigate('Courses')}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#e7f3ff' }]}>
-                <Ionicons name="compass" size={24} color="#2E86AB" />
+              <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
+                <Ionicons name="compass-outline" size={26} color="#1976D2" />
               </View>
-              <Text style={styles.quickActionText}>Browse Courses</Text>
+              <Text style={styles.actionText}>Browse Courses</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => navigation.navigate('Profile')}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#F3E5F5' }]}>
+                <Ionicons name="person-outline" size={26} color="#7B1FA2" />
+              </View>
+              <Text style={styles.actionText}>My Profile</Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+// Helper function for course icons
+function getCourseIcon(category) {
+  if (!category) return 'school-outline';
+  
+  const categoryLower = category.toLowerCase();
+  
+  if (categoryLower.includes('math')) return 'calculator-outline';
+  if (categoryLower.includes('science') || categoryLower.includes('biology') || categoryLower.includes('chemistry') || categoryLower.includes('physics')) return 'flask-outline';
+  if (categoryLower.includes('programming') || categoryLower.includes('code') || categoryLower.includes('computer')) return 'code-outline';
+  if (categoryLower.includes('english') || categoryLower.includes('writing') || categoryLower.includes('literature')) return 'book-outline';
+  if (categoryLower.includes('history')) return 'time-outline';
+  if (categoryLower.includes('art') || categoryLower.includes('design')) return 'color-palette-outline';
+  if (categoryLower.includes('business') || categoryLower.includes('economics')) return 'business-outline';
+  if (categoryLower.includes('music')) return 'musical-notes-outline';
+  if (categoryLower.includes('language')) return 'language-outline';
+  
+  return 'school-outline';
 }
 
 const styles = StyleSheet.create({
@@ -382,9 +385,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f8f9fa',
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: 12,
     fontSize: 16,
     color: '#6c757d',
   },
@@ -392,52 +396,59 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: 20,
     backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 25,
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
   },
-  greeting: {
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#2E86AB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 15,
+  },
+  avatarText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#fff',
   },
-  date: {
+  userDetails: {
+    flex: 1,
+  },
+  greeting: {
     fontSize: 14,
     color: '#6c757d',
-    marginTop: 4,
+    marginBottom: 2,
   },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 20,
-  },
-  statCard: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 12,
-    alignItems: 'center',
-    flex: 1,
-    marginHorizontal: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statNumber: {
-    fontSize: 20,
+  userName: {
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
-    marginVertical: 5,
+    marginBottom: 2,
   },
-  statLabel: {
-    fontSize: 12,
+  userEmail: {
+    fontSize: 14,
     color: '#6c757d',
   },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+  logoutButton: {
+    padding: 8,
+  },
+  statsSection: {
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -445,40 +456,66 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 15,
   },
-  sectionTitle: {
-    fontSize: 18,
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statCard: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginHorizontal: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statNumber: {
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#333',
+    marginVertical: 8,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6c757d',
+    textAlign: 'center',
+  },
+  coursesSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   seeAllText: {
     fontSize: 14,
     color: '#2E86AB',
     fontWeight: '600',
+    marginRight: 4,
   },
   courseCard: {
     backgroundColor: '#fff',
-    padding: 15,
     borderRadius: 12,
+    padding: 15,
     marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
-  },
-  courseHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
+    elevation: 2,
   },
   courseIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f8f9fa',
+    width: 50,
+    height: 50,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: 15,
   },
   courseInfo: {
     flex: 1,
@@ -487,13 +524,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+    marginBottom: 4,
   },
   courseInstructor: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6c757d',
-    marginTop: 2,
+    marginBottom: 8,
   },
-  progressContainer: {
+  progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -503,37 +541,51 @@ const styles = StyleSheet.create({
     backgroundColor: '#e9ecef',
     borderRadius: 3,
     marginRight: 10,
+    overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#2E86AB',
     borderRadius: 3,
   },
   progressText: {
     fontSize: 12,
     color: '#6c757d',
-    fontWeight: '600',
+    minWidth: 80,
+  },
+  chevron: {
+    marginLeft: 10,
   },
   emptyState: {
-    alignItems: 'center',
-    padding: 30,
     backgroundColor: '#fff',
     borderRadius: 12,
+    padding: 30,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 15,
+    marginBottom: 5,
   },
   emptyStateText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#6c757d',
-    marginTop: 12,
     textAlign: 'center',
+    marginBottom: 20,
   },
-  browseButton: {
+  enrollButton: {
     backgroundColor: '#2E86AB',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 6,
-    marginTop: 15,
+    paddingHorizontal: 25,
+    paddingVertical: 12,
+    borderRadius: 8,
   },
-  browseButtonText: {
+  enrollButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
@@ -544,31 +596,29 @@ const styles = StyleSheet.create({
   },
   quickActionsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  quickAction: {
-    width: '100%',
+  actionCard: {
+    width: '48%',
     backgroundColor: '#fff',
-    padding: 15,
+    padding: 20,
     borderRadius: 12,
-    marginBottom: 10,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
   },
-  quickActionIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  actionIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  quickActionText: {
+  actionText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
