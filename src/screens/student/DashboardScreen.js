@@ -15,7 +15,6 @@ import { getAuth } from 'firebase/auth';
 
 export default function DashboardScreen({ navigation }) {
   const [courses, setCourses] = useState([]);
-  const [announcements, setAnnouncements] = useState([]);
   const [stats, setStats] = useState({
     totalCourses: 0,
     completedCourses: 0,
@@ -109,27 +108,6 @@ export default function DashboardScreen({ navigation }) {
         }
       }
 
-      // Load announcements
-      const announcementsRef = ref(db, 'announcements');
-      const announcementsSnapshot = await get(announcementsRef);
-      
-      if (announcementsSnapshot.exists()) {
-        const announcementsData = announcementsSnapshot.val();
-        const announcementsArray = Object.keys(announcementsData).map(key => ({
-          id: key,
-          ...announcementsData[key]
-        })).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3); // Get latest 3
-        
-        setAnnouncements(announcementsArray);
-      } else {
-        // Default announcements if none in database
-        setAnnouncements([
-          { id: 1, title: 'Welcome to Learning Platform', date: new Date().toISOString().split('T')[0], icon: 'megaphone', description: 'Start your learning journey today!' },
-          { id: 2, title: 'New Features Added', date: '2024-01-10', icon: 'rocket', description: 'Check out the new course materials section' },
-          { id: 3, title: 'System Maintenance', date: '2024-01-05', icon: 'alert-circle', description: 'Scheduled maintenance on January 15th' },
-        ]);
-      }
-
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       Alert.alert('Error', 'Failed to load dashboard data');
@@ -154,29 +132,11 @@ export default function DashboardScreen({ navigation }) {
     return 'school';
   };
 
-  const getAnnouncementIcon = (type) => {
-    switch (type?.toLowerCase()) {
-      case 'exam': return 'calendar';
-      case 'holiday': return 'alert-circle';
-      case 'maintenance': return 'construct';
-      case 'new course': return 'rocket';
-      default: return 'megaphone';
-    }
-  };
-
   const handleCoursePress = (courseId, courseTitle) => {
     navigation.navigate('CourseDetail', { 
       courseId,
       courseTitle: courseTitle || 'Course Details'
     });
-  };
-
-  const handleAnnouncementPress = (announcement) => {
-    Alert.alert(
-      announcement.title,
-      announcement.description || 'No additional details available.',
-      [{ text: 'OK' }]
-    );
   };
 
   if (loading) {
@@ -223,7 +183,7 @@ export default function DashboardScreen({ navigation }) {
           
           <TouchableOpacity 
             style={styles.statCard}
-            onPress={() => navigation.navigate('Profile')}
+            onPress={() => navigation.navigate('Courses', { initialTab: 'completed' })}
           >
             <Ionicons name="trophy" size={24} color="#2E86AB" />
             <Text style={styles.statNumber}>{stats.certificates}</Text>
@@ -283,45 +243,7 @@ export default function DashboardScreen({ navigation }) {
           )}
         </View>
 
-        {/* Announcements */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Announcements</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>See All</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {announcements.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="megaphone-outline" size={48} color="#adb5bd" />
-              <Text style={styles.emptyStateText}>No announcements</Text>
-            </View>
-          ) : (
-            announcements.map((announcement) => (
-              <TouchableOpacity 
-                key={announcement.id} 
-                style={styles.announcementCard}
-                onPress={() => handleAnnouncementPress(announcement)}
-              >
-                <Ionicons 
-                  name={getAnnouncementIcon(announcement.type)} 
-                  size={20} 
-                  color="#6c757d" 
-                />
-                <View style={styles.announcementContent}>
-                  <Text style={styles.announcementTitle}>{announcement.title}</Text>
-                  <Text style={styles.announcementDate}>
-                    {new Date(announcement.date).toLocaleDateString()}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#6c757d" />
-              </TouchableOpacity>
-            ))
-          )}
-        </View>
-
-        {/* Quick Actions */}
+        {/* Quick Actions - Simplified to only Browse Courses */}
         <View style={styles.quickActionsSection}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActionsGrid}>
@@ -333,36 +255,6 @@ export default function DashboardScreen({ navigation }) {
                 <Ionicons name="compass" size={24} color="#2E86AB" />
               </View>
               <Text style={styles.quickActionText}>Browse Courses</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickAction}
-              onPress={() => navigation.navigate('Profile')}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#fff3cd' }]}>
-                <Ionicons name="person-circle" size={24} color="#856404" />
-              </View>
-              <Text style={styles.quickActionText}>Profile</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickAction}
-              onPress={() => Alert.alert('Help', 'Contact support for assistance')}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#d4edda' }]}>
-                <Ionicons name="help-circle" size={24} color="#155724" />
-              </View>
-              <Text style={styles.quickActionText}>Help</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickAction}
-              onPress={() => navigation.navigate('Settings')}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#f8d7da' }]}>
-                <Ionicons name="settings" size={24} color="#721c24" />
-              </View>
-              <Text style={styles.quickActionText}>Settings</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -512,33 +404,6 @@ const styles = StyleSheet.create({
     color: '#6c757d',
     fontWeight: '600',
   },
-  announcementCard: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  announcementContent: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  announcementTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  announcementDate: {
-    fontSize: 12,
-    color: '#6c757d',
-    marginTop: 2,
-  },
   emptyState: {
     alignItems: 'center',
     padding: 30,
@@ -573,7 +438,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   quickAction: {
-    width: '48%',
+    width: '100%',
     backgroundColor: '#fff',
     padding: 15,
     borderRadius: 12,
