@@ -327,31 +327,7 @@ export default function CoreDashboardScreen({ navigation }) {
           )}
         </View>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActionsSection}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsGrid}>
-            <TouchableOpacity
-              style={styles.actionCard}
-              onPress={() => navigation.navigate('Courses')}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
-                <Ionicons name="compass-outline" size={26} color="#1976D2" />
-              </View>
-              <Text style={styles.actionText}>Browse Courses</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.actionCard}
-              onPress={() => navigation.navigate('Profile')}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: '#F3E5F5' }]}>
-                <Ionicons name="person-outline" size={26} color="#7B1FA2" />
-              </View>
-              <Text style={styles.actionText}>My Profile</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* Removed Quick Actions Section */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -589,39 +565,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
-  },
-  quickActionsSection: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  actionCard: {
-    width: '48%',
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  actionIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  actionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    textAlign: 'center',
   },
 });
