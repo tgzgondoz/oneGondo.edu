@@ -13,15 +13,11 @@ export default function AdminDashboardScreen({ navigation }) {
   const stats = [
     { id: 1, title: 'Total Students', value: '1,234', icon: 'people', color: '#2E86AB' },
     { id: 2, title: 'Active Courses', value: '45', icon: 'book', color: '#A23B72' },
-    { id: 3, title: 'Pending Requests', value: '12', icon: 'time', color: '#F18F01' },
-    { id: 4, title: 'Revenue', value: '$12,345', icon: 'cash', color: '#C73E1D' },
   ];
 
   const quickActions = [
     { id: 1, title: 'Add Course', icon: 'add-circle', screen: 'Courses' },
-    { id: 2, title: 'Manage Users', icon: 'people', screen: 'Users' },
     { id: 3, title: 'Analytics', icon: 'analytics', screen: 'Analytics' },
-    { id: 4, title: 'Settings', icon: 'settings', screen: 'Settings' },
   ];
 
   const handleQuickAction = (screen) => {
@@ -86,9 +82,9 @@ export default function AdminDashboardScreen({ navigation }) {
               </View>
             </View>
             <View style={styles.activityItem}>
-              <Ionicons name="alert-circle" size={20} color="#F18F01" />
+              <Ionicons name="checkmark-circle" size={20} color="#28a745" />
               <View style={styles.activityContent}>
-                <Text style={styles.activityText}>3 pending course approvals</Text>
+                <Text style={styles.activityText}>Course "Physics 101" published</Text>
                 <Text style={styles.activityTime}>1 day ago</Text>
               </View>
             </View>

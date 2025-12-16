@@ -5,7 +5,6 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
 import AdminProfileScreen from '../screens/admin/AdminProfileScreen';
-import UserManagementScreen from '../screens/admin/UserManagementScreen';
 import CourseManagementScreen from '../screens/admin/CourseManagementScreen';
 import CreateCourseScreen from '../screens/admin/CreateCourseScreen';
 import AddSectionScreen from '../screens/admin/AddSectionScreen';
@@ -135,27 +134,17 @@ function CourseStackNavigator() {
   );
 }
 
-// Stack Navigator for User Management
-function UserStackNavigator() {
-  return (
-    <CourseStack.Navigator screenOptions={{ headerShown: false }}>
-      <CourseStack.Screen 
-        name="UserManagementMain" 
-        component={UserManagementScreen}
-      />
-    </CourseStack.Navigator>
-  );
-}
-
 // Stack Navigator for Profile
 function ProfileStackNavigator() {
+  const Stack = createStackNavigator();
+  
   return (
-    <CourseStack.Navigator screenOptions={{ headerShown: false }}>
-      <CourseStack.Screen 
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen 
         name="ProfileMain" 
         component={AdminProfileScreen}
       />
-    </CourseStack.Navigator>
+    </Stack.Navigator>
   );
 }
 
@@ -168,8 +157,6 @@ export default function AdminNavigator() {
 
           if (route.name === 'Dashboard') {
             iconName = focused ? 'grid' : 'grid-outline';
-          } else if (route.name === 'Users') {
-            iconName = focused ? 'people' : 'people-outline';
           } else if (route.name === 'Courses') {
             iconName = focused ? 'library' : 'library-outline';
           } else if (route.name === 'Profile') {
@@ -207,14 +194,6 @@ export default function AdminNavigator() {
         }}
       />
       <Tab.Screen 
-        name="Users" 
-        component={UserStackNavigator}
-        options={{
-          tabBarLabel: 'Users',
-          headerShown: false,
-        }}
-      />
-      <Tab.Screen 
         name="Courses" 
         component={CourseStackNavigator}
         options={{
@@ -226,7 +205,6 @@ export default function AdminNavigator() {
         component={ProfileStackNavigator}
         options={{
           tabBarLabel: 'Profile',
-          headerShown: false,
         }}
       />
     </Tab.Navigator>
