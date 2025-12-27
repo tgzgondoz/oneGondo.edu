@@ -22,9 +22,6 @@ export default function RegisterScreen({ navigation }) {
     email: '',
     password: '',
     confirmPassword: '',
-    fullName: '',
-    studentId: '',
-    phoneNumber: '',
     agreeToTerms: false,
   });
   
@@ -39,10 +36,6 @@ export default function RegisterScreen({ navigation }) {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
-    }
-
     if (!formData.email) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -59,10 +52,6 @@ export default function RegisterScreen({ navigation }) {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    if (!formData.studentId.trim()) {
-      newErrors.studentId = 'Student ID is required';
     }
 
     if (!formData.agreeToTerms) {
@@ -115,10 +104,7 @@ export default function RegisterScreen({ navigation }) {
     
     const result = await signUp(
       formData.email, 
-      formData.password, 
-      formData.fullName,
-      formData.studentId,
-      formData.phoneNumber
+      formData.password
     );
     
     if (result.success) {
@@ -187,28 +173,6 @@ export default function RegisterScreen({ navigation }) {
                 <Text style={styles.title}>Create your Account</Text>
                 
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Full Name</Text>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      errors.fullName && styles.inputError,
-                    ]}
-                    placeholder="Enter your full name"
-                    placeholderTextColor="#999"
-                    value={formData.fullName}
-                    onChangeText={(value) => handleInputChange('fullName', value)}
-                    autoCapitalize="words"
-                    autoComplete="name"
-                  />
-                  {errors.fullName && (
-                    <View style={styles.errorContainer}>
-                      <Text style={styles.errorText}>!</Text>
-                      <Text style={styles.errorText}>{errors.fullName}</Text>
-                    </View>
-                  )}
-                </View>
-
-                <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Email</Text>
                   <TextInput
                     style={[
@@ -229,39 +193,6 @@ export default function RegisterScreen({ navigation }) {
                       <Text style={styles.errorText}>{errors.email}</Text>
                     </View>
                   )}
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Student ID</Text>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      errors.studentId && styles.inputError,
-                    ]}
-                    placeholder="Enter your student ID"
-                    placeholderTextColor="#999"
-                    value={formData.studentId}
-                    onChangeText={(value) => handleInputChange('studentId', value)}
-                    keyboardType="number-pad"
-                  />
-                  {errors.studentId && (
-                    <View style={styles.errorContainer}>
-                      <Text style={styles.errorText}>!</Text>
-                      <Text style={styles.errorText}>{errors.studentId}</Text>
-                    </View>
-                  )}
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Phone Number (Optional)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your phone number"
-                    placeholderTextColor="#999"
-                    value={formData.phoneNumber}
-                    onChangeText={(value) => handleInputChange('phoneNumber', value)}
-                    keyboardType="phone-pad"
-                  />
                 </View>
 
                 <View style={styles.inputContainer}>
