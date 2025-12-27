@@ -112,7 +112,7 @@ export default function LoginScreen({ navigation }) {
   };
 
   const handleForgotPassword = () => navigation.navigate("ForgotPassword");
-  const handleAdminAccess = () => navigation.navigate("AdminLogin");
+  const handleSignUp = () => navigation.navigate("Register");
 
   return (
     <SafeAreaView style={styles.container}>
@@ -126,48 +126,40 @@ export default function LoginScreen({ navigation }) {
             ref={scrollViewRef}
             contentContainerStyle={styles.scrollView}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="never" // FIXED: Changed from "handled" to "never"
+            keyboardShouldPersistTaps="never"
             keyboardDismissMode="interactive"
           >
-            <View style={styles.headerGradient}>
-              <View style={styles.header}>
-                <View style={styles.logoContainer}>
-                  <View style={styles.logoCircle}>
-                    <Text style={styles.logoLetter}>G</Text>
-                  </View>
-                  <Text style={styles.logoText}>oneGondo.edu</Text>
-                </View>
-                <Text style={styles.headerSubtitle}>
-                  Premium Mobile Learning Experience
-                </Text>
-              </View>
+            {/* Header with time */}
+            <View style={styles.header}>
+              <Text style={styles.timeText}>9:41</Text>
             </View>
 
+            {/* Logo/Brand Section */}
+            <View style={styles.brandContainer}>
+              <Text style={styles.brandText}>cignifi</Text>
+            </View>
+
+            {/* Main Content */}
             <Animated.View
               style={[
                 styles.content,
                 { transform: [{ translateX: shakeAnimation }] },
               ]}
             >
+              {/* Login Form */}
               <View style={styles.formContainer}>
-                <Text style={styles.title}>Student Portal</Text>
-                <Text style={styles.formSubtitle}>
-                  Enter your credentials to access your personalized learning
-                  dashboard
-                </Text>
-
+                <Text style={styles.title}>Login to your Account</Text>
+                
                 <View style={styles.inputContainer}>
-                  <View style={styles.inputLabel}>
-                    <Text style={styles.labelText}>Student Email</Text>
-                  </View>
+                  <Text style={styles.inputLabel}>Email</Text>
                   <TextInput
                     ref={emailInputRef}
                     style={[
                       styles.input,
                       emailError ? styles.inputError : styles.inputNormal,
                     ]}
-                    placeholder="you@student.onegondo.edu"
-                    placeholderTextColor="#adb5bd"
+                    placeholder="Enter your email"
+                    placeholderTextColor="#999"
                     value={email}
                     onChangeText={(text) => {
                       setEmail(text);
@@ -190,9 +182,7 @@ export default function LoginScreen({ navigation }) {
                 </View>
 
                 <View style={styles.inputContainer}>
-                  <View style={styles.inputLabel}>
-                    <Text style={styles.labelText}>Password</Text>
-                  </View>
+                  <Text style={styles.inputLabel}>Password</Text>
                   <View style={styles.passwordWrapper}>
                     <TextInput
                       ref={passwordInputRef}
@@ -201,8 +191,8 @@ export default function LoginScreen({ navigation }) {
                         styles.passwordInput,
                         passwordError ? styles.inputError : styles.inputNormal,
                       ]}
-                      placeholder="••••••••"
-                      placeholderTextColor="#adb5bd"
+                      placeholder="Enter your password"
+                      placeholderTextColor="#999"
                       value={password}
                       onChangeText={(text) => {
                         setPassword(text);
@@ -234,28 +224,9 @@ export default function LoginScreen({ navigation }) {
                   )}
                 </View>
 
-                <View style={styles.rowContainer}>
-                  <TouchableOpacity
-                    style={styles.rememberMe}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.checkbox} />
-                    <Text style={styles.rememberMeText}>Remember me</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleForgotPassword}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.forgotPasswordText}>
-                      Forgot Password?
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
                 <TouchableOpacity
                   style={[
                     styles.button,
-                    styles.studentButton,
                     loading && styles.buttonDisabled,
                   ]}
                   onPress={handleLogin}
@@ -265,52 +236,89 @@ export default function LoginScreen({ navigation }) {
                   {loading ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={styles.buttonText}>Sign In to Dashboard</Text>
+                    <Text style={styles.buttonText}>Sign in</Text>
                   )}
                 </TouchableOpacity>
 
-                <View style={styles.registerContainer}>
-                  <Text style={styles.registerText}>New to oneGondo.edu?</Text>
-                  <TouchableOpacity
-                    style={styles.registerLinkContainer}
-                    onPress={() => navigation.navigate("Register")}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.registerLink}>
-                      Create Student Account
-                    </Text>
-                    <Text style={styles.arrowIcon}>→</Text>
+                <View style={styles.dividerContainer}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>Or sign in with</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                {/* Social Login Buttons - Placeholder */}
+                <View style={styles.socialButtonsContainer}>
+                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
+                    <Text style={styles.socialButtonText}>Google</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
+                    <Text style={styles.socialButtonText}>Facebook</Text>
                   </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity
-                  style={styles.adminAccessButton}
-                  onPress={handleAdminAccess}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.adminIconContainer}>
-                    <Text style={styles.adminIcon}>🔒</Text>
-                  </View>
-                  <View style={styles.adminTextContainer}>
-                    <Text style={styles.adminAccessText}>
-                      Faculty or Administrator Access
-                    </Text>
-                    <Text style={styles.adminSubtext}>
-                      Click here for staff login
-                    </Text>
-                  </View>
-                  <Text style={styles.chevronIcon}>›</Text>
-                </TouchableOpacity>
+                <View style={styles.signupContainer}>
+                  <Text style={styles.signupText}>Don't have an account?</Text>
+                  <TouchableOpacity
+                    onPress={handleSignUp}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.signupLink}>Sign up</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
-              <View style={styles.footer}>
-                <Text style={styles.footerText}>Secure & Encrypted</Text>
-                <Text style={styles.contactText}>
-                  Support: 24/7 • support@onegondo.edu
-                </Text>
-                <Text style={styles.versionText}>
-                  Version 2.1.4 • © 2024 oneGondo.edu
-                </Text>
+              {/* Sign Up Form (Hidden by default, shown when navigating) */}
+              <View style={[styles.formContainer, styles.signupFormContainer]}>
+                <Text style={styles.title}>Create your Account</Text>
+                
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Email</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your email"
+                    placeholderTextColor="#999"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Password</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your password"
+                    placeholderTextColor="#999"
+                    secureTextEntry={true}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Confirm Password</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Confirm your password"
+                    placeholderTextColor="#999"
+                    secureTextEntry={true}
+                  />
+                </View>
+
+                <TouchableOpacity style={styles.button} activeOpacity={0.8}>
+                  <Text style={styles.buttonText}>Sign up</Text>
+                </TouchableOpacity>
+
+                <View style={styles.dividerContainer}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>Or sign up with</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                {/* Social Signup Buttons - Placeholder */}
+                <View style={styles.socialButtonsContainer}>
+                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
+                    <Text style={styles.socialButtonText}>Google</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
+                    <Text style={styles.socialButtonText}>Facebook</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </Animated.View>
           </ScrollView>
@@ -321,78 +329,90 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
-  scrollView: { flexGrow: 1, paddingBottom: 40 },
-  headerGradient: {
-    backgroundColor: "#2E86AB",
-    paddingTop: Platform.OS === "ios" ? 20 : 40,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+  container: { 
+    flex: 1, 
+    backgroundColor: "#f5f5f5" 
   },
-  header: { alignItems: "center", paddingHorizontal: 20 },
-  logoContainer: {
-    flexDirection: "row",
+  scrollView: { 
+    flexGrow: 1 
+  },
+  header: {
+    paddingTop: Platform.OS === "ios" ? 10 : 20,
+    paddingHorizontal: 20,
+    alignItems: "flex-end",
+  },
+  timeText: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#000",
+  },
+  brandContainer: {
     alignItems: "center",
-    marginBottom: 8,
+    marginTop: 30,
+    marginBottom: 40,
   },
-  logoCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  logoLetter: { fontSize: 24, fontWeight: "bold", color: "#2E86AB" },
-  logoText: {
+  brandText: {
     fontSize: 32,
-    fontWeight: "800",
-    color: "#fff",
+    fontWeight: "bold",
+    color: "#000",
     letterSpacing: 0.5,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.9)",
-    textAlign: "center",
+  content: { 
+    flex: 1,
+    paddingHorizontal: 24,
   },
-  content: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
   formContainer: {
     backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 24,
-    marginTop: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  title: { fontSize: 26, fontWeight: "700", color: "#1a1a1a", marginBottom: 8 },
-  formSubtitle: {
-    fontSize: 15,
-    color: "#6c757d",
-    marginBottom: 32,
-    lineHeight: 22,
-  },
-  inputContainer: { marginBottom: 20 },
-  inputLabel: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  labelText: { fontSize: 14, fontWeight: "600", color: "#495057" },
-  input: {
-    backgroundColor: "#f8f9fa",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
     borderRadius: 12,
-    fontSize: 16,
-    borderWidth: 2,
-    borderColor: "#e9ecef",
-    color: "#495057",
+    padding: 24,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  inputNormal: { borderColor: "#e9ecef" },
-  inputError: { borderColor: "#dc3545" },
-  passwordWrapper: { position: "relative" },
-  passwordInput: { paddingRight: 70 },
+  signupFormContainer: {
+    display: "none", // Hidden by default, shown via navigation
+  },
+  title: { 
+    fontSize: 24, 
+    fontWeight: "600", 
+    color: "#000", 
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  inputContainer: { 
+    marginBottom: 20 
+  },
+  inputLabel: { 
+    fontSize: 16, 
+    fontWeight: "500", 
+    color: "#333", 
+    marginBottom: 8 
+  },
+  input: {
+    backgroundColor: "#f8f8f8",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 8,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    color: "#333",
+  },
+  inputNormal: { 
+    borderColor: "#e0e0e0" 
+  },
+  inputError: { 
+    borderColor: "#ff4444" 
+  },
+  passwordWrapper: { 
+    position: "relative" 
+  },
+  passwordInput: { 
+    paddingRight: 70 
+  },
   eyeButton: {
     position: "absolute",
     right: 16,
@@ -402,107 +422,87 @@ const styles = StyleSheet.create({
     zIndex: 1,
     padding: 8,
   },
-  eyeIcon: { fontSize: 12, color: "#6c757d", fontWeight: "600" },
-  errorContainer: { flexDirection: "row", alignItems: "center", marginTop: 6 },
-  errorText: { color: "#dc3545", fontSize: 13, marginLeft: 6 },
-  rowContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
+  eyeIcon: { 
+    fontSize: 12, 
+    color: "#666", 
+    fontWeight: "600" 
   },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: "#6c757d",
-    marginRight: 8,
+  errorContainer: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    marginTop: 6 
   },
-  rememberMe: { flexDirection: "row", alignItems: "center" },
-  rememberMeText: { color: "#495057", fontSize: 14 },
-  forgotPasswordText: { color: "#2E86AB", fontSize: 14, fontWeight: "600" },
+  errorText: { 
+    color: "#ff4444", 
+    fontSize: 13, 
+    marginLeft: 6 
+  },
   button: {
-    flexDirection: "row",
+    backgroundColor: "#000",
+    padding: 16,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    padding: 18,
-    borderRadius: 12,
-    shadowColor: "#28a745",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-    marginBottom: 16,
-  },
-  studentButton: { backgroundColor: "#28a745" },
-  buttonDisabled: { opacity: 0.7 },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "700" },
-  registerContainer: {
-    alignItems: "center",
-    backgroundColor: "#f0f9ff",
-    padding: 20,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#d1e8ff",
+    marginTop: 10,
     marginBottom: 20,
   },
-  registerText: { color: "#495057", fontSize: 15, marginBottom: 8 },
-  registerLinkContainer: { flexDirection: "row", alignItems: "center" },
-  registerLink: {
-    color: "#2E86AB",
-    fontSize: 16,
-    fontWeight: "700",
-    marginRight: 6,
+  buttonDisabled: { 
+    opacity: 0.7 
   },
-  arrowIcon: { fontSize: 18, color: "#2E86AB" },
-  adminAccessButton: {
+  buttonText: { 
+    color: "#fff", 
+    fontSize: 16, 
+    fontWeight: "600" 
+  },
+  dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f8f9fa",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e9ecef",
+    marginVertical: 20,
   },
-  adminIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#e9ecef",
-    alignItems: "center",
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#e0e0e0",
+  },
+  dividerText: {
+    color: "#666",
+    fontSize: 14,
+    marginHorizontal: 12,
+  },
+  socialButtonsContainer: {
+    flexDirection: "row",
     justifyContent: "center",
-    marginRight: 12,
+    gap: 12,
+    marginBottom: 20,
   },
-  adminIcon: { fontSize: 20 },
-  adminTextContainer: { flex: 1 },
-  adminAccessText: {
-    color: "#495057",
+  socialButton: {
+    flex: 1,
+    backgroundColor: "#f8f8f8",
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    alignItems: "center",
+  },
+  socialButtonText: {
+    color: "#333",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  signupContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  signupText: {
+    color: "#666",
+    fontSize: 14,
+    marginRight: 6,
+  },
+  signupLink: {
+    color: "#000",
     fontSize: 14,
     fontWeight: "600",
-    marginBottom: 2,
   },
-  adminSubtext: { color: "#6c757d", fontSize: 12 },
-  chevronIcon: { fontSize: 24, color: "#6c757d", marginLeft: 8 },
-  footer: {
-    marginTop: 30,
-    alignItems: "center",
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#e9ecef",
-  },
-  footerText: {
-    textAlign: "center",
-    color: "#28a745",
-    fontSize: 13,
-    marginBottom: 6,
-    fontWeight: "600",
-  },
-  contactText: {
-    textAlign: "center",
-    color: "#495057",
-    fontSize: 13,
-    marginBottom: 6,
-  },
-  versionText: { textAlign: "center", color: "#adb5bd", fontSize: 12 },
 });
