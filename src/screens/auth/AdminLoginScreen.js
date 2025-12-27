@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,43 +11,42 @@ import {
   StyleSheet,
   Animated,
   ActivityIndicator,
-  Dimensions,
-  SafeAreaView
+  SafeAreaView,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useAuth } from '../../components/AuthContext';
-
-const { width } = Dimensions.get('window');
 
 export default function AdminLoginScreen({ navigation }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [shakeAnimation] = useState(new Animated.Value(0));
-  const [attempts, setAttempts] = useState(0);
-  const [isLocked, setIsLocked] = useState(false);
-  const [lockTime, setLockTime] = useState(0);
   const { adminSignIn, loading } = useAuth();
 
-  const timerRef = useRef(null);
+  const scrollViewRef = useRef();
 
-  useEffect(() => {
-    if (isLocked && lockTime > 0) {
-      timerRef.current = setInterval(() => {
-        setLockTime(prev => {
-          if (prev <= 1) {
-            setIsLocked(false);
-            clearInterval(timerRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+  const validateForm = () => {
+    let isValid = true;
+    
+    if (!username) {
+      setUsernameError('Username is required');
+      isValid = false;
+    } else {
+      setUsernameError('');
     }
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isLocked, lockTime]);
+    if (!password) {
+      setPasswordError('Password is required');
+      isValid = false;
+    } else {
+      setPasswordError('');
+    }
+
+    return isValid;
+  };
 
   const triggerShake = () => {
     Animated.sequence([
@@ -75,465 +74,345 @@ export default function AdminLoginScreen({ navigation }) {
   };
 
   const handleAdminLogin = async () => {
-    if (isLocked) {
-      Alert.alert(
-        'Account Locked',
-        `Too many failed attempts. Please wait ${lockTime} seconds before trying again.`,
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    if (!username || !password) {
-      Alert.alert('Access Denied', 'Both username and password are required');
+    setUsernameError('');
+    setPasswordError('');
+    
+    if (!validateForm()) {
       triggerShake();
       return;
     }
 
+    Keyboard.dismiss();
     const result = await adminSignIn(username, password);
     
     if (result.success) {
-      setAttempts(0);
-      // Navigate to admin dashboard or handle success
-      // navigation.navigate('AdminDashboard');
+      Alert.alert(
+        'Access Granted',
+        'Welcome to Admin Dashboard'
+      );
     } else {
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
-      
-      if (newAttempts >= 3) {
-        setIsLocked(true);
-        setLockTime(30);
-        Alert.alert(
-          'Security Alert',
-          'Too many failed attempts. Account locked for 30 seconds.',
-          [{ text: 'OK' }]
-        );
-      } else {
-        triggerShake();
-        Alert.alert(
-          'Access Denied',
-          `Invalid credentials. ${3 - newAttempts} attempt(s) remaining.`,
-          [{ text: 'Try Again' }]
-        );
-      }
+      Alert.alert(
+        'Access Denied',
+        result.error || 'Invalid admin credentials',
+        [{ text: 'Try Again', style: 'cancel' }]
+      );
+      triggerShake();
     }
   };
 
-  const goBackToStudentLogin = () => {
+  const handleStudentLogin = () => {
     navigation.navigate('Login');
   };
 
-  const AnimatedView = Animated.createAnimatedComponent(View);
-
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
       >
-        <ScrollView 
-          contentContainerStyle={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Security Header */}
-          <View style={styles.securityHeader}>
-            <View style={styles.securityBadge}>
-              <Text style={styles.shieldIcon}>🛡️</Text>
-              <Text style={styles.securityLevel}>SECURITY LEVEL 5</Text>
-            </View>
-            <Text style={styles.securityTitle}>Administration Portal</Text>
-            <Text style={styles.securitySubtitle}>Restricted Access • Multi-Factor Required</Text>
-          </View>
-
-          <AnimatedView 
-            style={[
-              styles.content,
-              { transform: [{ translateX: shakeAnimation }] }
-            ]}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            ref={scrollViewRef}
+            contentContainerStyle={styles.scrollView}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="never"
+            keyboardDismissMode="interactive"
           >
-            {/* Warning Banner */}
-            <View style={styles.warningBanner}>
-              <Text style={styles.alertIcon}>⚠️</Text>
-              <Text style={styles.warningText}>
-                UNAUTHORIZED ACCESS IS MONITORED
-              </Text>
+            {/* Header */}
+            <View style={styles.header}>
+              <TouchableOpacity 
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+              >
+                <Text style={styles.backButtonText}>←</Text>
+              </TouchableOpacity>
             </View>
 
-            {/* Login Form */}
-            <View style={styles.formContainer}>
-              <View style={styles.formHeader}>
-                <Text style={styles.adminIcon}>👨‍💼</Text>
-                <Text style={styles.formTitle}>Admin Authentication</Text>
-                <Text style={styles.formSubtitle}>
-                  Enter credentials with proper security clearance
-                </Text>
-              </View>
+            {/* Logo/Brand Section */}
+            <View style={styles.brandContainer}>
+              <Text style={styles.brandText}>oneGondo.edu</Text>
+            </View>
 
-              {/* Username Field */}
-              <View style={styles.inputGroup}>
-                <View style={styles.inputLabel}>
-                  <Text style={styles.inputIcon}>🔐</Text>
-                  <Text style={styles.labelText}>Administrator ID</Text>
-                </View>
-                <TextInput
-                  style={[
-                    styles.input,
-                    attempts > 0 && styles.inputWarning
-                  ]}
-                  placeholder="Enter admin username"
-                  placeholderTextColor="#adb5bd"
-                  value={username}
-                  onChangeText={setUsername}
-                  autoCapitalize="none"
-                  autoComplete="username"
-                  editable={!isLocked}
-                  returnKeyType="next"
-                />
-                {attempts > 0 && (
-                  <Text style={styles.attemptsWarning}>
-                    Attempts remaining: {3 - attempts}
-                  </Text>
-                )}
-              </View>
-
-              {/* Password Field */}
-              <View style={styles.inputGroup}>
-                <View style={styles.inputLabel}>
-                  <Text style={styles.inputIcon}>🔑</Text>
-                  <Text style={styles.labelText}>Security Password</Text>
-                </View>
-                <View style={styles.passwordContainer}>
+            {/* Main Content */}
+            <Animated.View
+              style={[
+                styles.content,
+                { transform: [{ translateX: shakeAnimation }] },
+              ]}
+            >
+              {/* Admin Login Form */}
+              <View style={styles.formContainer}>
+                <Text style={styles.title}>Administrator Login</Text>
+                
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Username</Text>
                   <TextInput
                     style={[
                       styles.input,
-                      styles.passwordInput,
-                      attempts > 0 && styles.inputWarning
+                      usernameError && styles.inputError,
                     ]}
-                    placeholder="Enter secure password"
-                    placeholderTextColor="#adb5bd"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    autoComplete="password"
-                    editable={!isLocked}
-                    returnKeyType="done"
-                    onSubmitEditing={handleAdminLogin}
+                    placeholder="Enter admin username"
+                    placeholderTextColor="#999"
+                    value={username}
+                    onChangeText={(text) => {
+                      setUsername(text);
+                      if (usernameError) setUsernameError('');
+                    }}
+                    autoCapitalize="none"
+                    autoComplete="username"
+                    autoCorrect={false}
+                    returnKeyType="next"
                   />
-                  <TouchableOpacity
-                    style={styles.eyeButton}
-                    onPress={() => setShowPassword(!showPassword)}
-                    disabled={isLocked}
-                  >
-                    <Text style={styles.eyeText}>
-                      {showPassword ? 'HIDE' : 'SHOW'}
-                    </Text>
-                  </TouchableOpacity>
+                  {usernameError && (
+                    <View style={styles.errorContainer}>
+                      <Text style={styles.errorText}>!</Text>
+                      <Text style={styles.errorText}>{usernameError}</Text>
+                    </View>
+                  )}
                 </View>
-              </View>
 
-              {/* Lock Timer */}
-              {isLocked && (
-                <View style={styles.lockContainer}>
-                  <Text style={styles.timerIcon}>⏱️</Text>
-                  <Text style={styles.lockText}>
-                    Account locked for {lockTime} seconds
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Password</Text>
+                  <View style={styles.passwordWrapper}>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        styles.passwordInput,
+                        passwordError && styles.inputError,
+                      ]}
+                      placeholder="Enter admin password"
+                      placeholderTextColor="#999"
+                      value={password}
+                      onChangeText={(text) => {
+                        setPassword(text);
+                        if (passwordError) setPasswordError('');
+                      }}
+                      secureTextEntry={!showPassword}
+                      autoComplete="password"
+                      autoCapitalize="none"
+                      returnKeyType="done"
+                      onSubmitEditing={handleAdminLogin}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      style={styles.eyeButton}
+                      activeOpacity={0.6}
+                    >
+                      <Text style={styles.eyeIcon}>
+                        {showPassword ? 'HIDE' : 'SHOW'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  {passwordError && (
+                    <View style={styles.errorContainer}>
+                      <Text style={styles.errorText}>!</Text>
+                      <Text style={styles.errorText}>{passwordError}</Text>
+                    </View>
+                  )}
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    styles.button,
+                    loading && styles.buttonDisabled,
+                  ]}
+                  onPress={handleAdminLogin}
+                  disabled={loading}
+                  activeOpacity={0.8}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.buttonText}>Admin Login</Text>
+                  )}
+                </TouchableOpacity>
+
+                <View style={styles.dividerContainer}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>Or</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.studentLoginButton}
+                  onPress={handleStudentLogin}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.studentLoginText}>Student Login</Text>
+                </TouchableOpacity>
+
+                <View style={styles.noteContainer}>
+                  <Text style={styles.noteText}>
+                    This portal is restricted to authorized faculty and staff only.
                   </Text>
                 </View>
-              )}
-
-              {/* Login Button */}
-              <TouchableOpacity 
-                style={[
-                  styles.loginButton,
-                  loading && styles.buttonDisabled,
-                  isLocked && styles.buttonLocked
-                ]}
-                onPress={handleAdminLogin}
-                disabled={loading || isLocked}
-                activeOpacity={0.8}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <Text style={styles.lockIcon}>🔒</Text>
-                    <Text style={styles.loginButtonText}>
-                      {isLocked ? 'ACCESS LOCKED' : 'AUTHENTICATE & LOGIN'}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              {/* Back to Student Login */}
-              <TouchableOpacity 
-                style={styles.backButton}
-                onPress={goBackToStudentLogin}
-              >
-                <Text style={styles.arrowIcon}>←</Text>
-                <Text style={styles.backButtonText}>
-                  Return to Student Portal
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Footer */}
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>
-                oneGondo.edu Administration System v2.0
-              </Text>
-              <Text style={styles.footerSubtext}>
-                All access attempts are logged and monitored 24/7
-              </Text>
-              <Text style={styles.footerCopyright}>
-                © 2024 oneGondo.edu • Restricted Access Only
-              </Text>
-            </View>
-          </AnimatedView>
-        </ScrollView>
+              </View>
+            </Animated.View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0a0a0a',
+  container: { 
+    flex: 1, 
+    backgroundColor: "#f5f5f5" 
   },
-  scrollView: {
-    flexGrow: 1,
+  scrollView: { 
+    flexGrow: 1 
   },
-  securityHeader: {
-    backgroundColor: '#1a1a1a',
-    paddingTop: Platform.OS === 'ios' ? 40 : 50,
-    paddingBottom: 20,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#dc3545',
-  },
-  securityBadge: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  shieldIcon: {
-    fontSize: 48,
-  },
-  securityLevel: {
-    color: '#dc3545',
-    fontSize: 12,
-    fontWeight: 'bold',
-    letterSpacing: 2,
-    marginTop: 8,
-  },
-  securityTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 8,
-  },
-  securitySubtitle: {
-    fontSize: 14,
-    color: '#aaa',
-    textAlign: 'center',
-  },
-  content: {
+  header: {
+    paddingTop: Platform.OS === "ios" ? 10 : 20,
     paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  warningBanner: {
-    backgroundColor: '#dc3545',
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#ff6b6b',
-  },
-  alertIcon: {
-    fontSize: 24,
-  },
-  warningText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: 'bold',
-    marginLeft: 12,
-    flex: 1,
-  },
-  formContainer: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#333',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 15,
-  },
-  formHeader: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  adminIcon: {
-    fontSize: 32,
-  },
-  formTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#fff',
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  formSubtitle: {
-    fontSize: 14,
-    color: '#aaa',
-    textAlign: 'center',
-  },
-  inputGroup: {
-    marginBottom: 24,
-  },
-  inputLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  inputIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  labelText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ddd',
-  },
-  input: {
-    backgroundColor: '#2a2a2a',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    borderRadius: 12,
-    fontSize: 16,
-    borderWidth: 2,
-    borderColor: '#333',
-    color: '#fff',
-  },
-  inputWarning: {
-    borderColor: '#ff9800',
-  },
-  attemptsWarning: {
-    color: '#ff9800',
-    fontSize: 12,
-    marginTop: 6,
-    fontWeight: '500',
-  },
-  passwordContainer: {
-    position: 'relative',
-  },
-  passwordInput: {
-    paddingRight: 70,
-  },
-  eyeButton: {
-    position: 'absolute',
-    right: 16,
-    top: 18,
-    zIndex: 1,
-  },
-  eyeText: {
-    fontSize: 12,
-    color: '#6c757d',
-    fontWeight: '600',
-  },
-  lockContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#332200',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#ff9800',
-  },
-  timerIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  lockText: {
-    color: '#ff9800',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  loginButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#dc3545',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#dc3545',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonLocked: {
-    backgroundColor: '#666',
-  },
-  lockIcon: {
-    fontSize: 22,
-    marginRight: 12,
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
   },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  arrowIcon: {
-    fontSize: 20,
-    color: '#2E86AB',
-    marginRight: 8,
+    padding: 8,
   },
   backButtonText: {
-    color: '#2E86AB',
+    fontSize: 24,
+    color: "#000",
+    fontWeight: "bold",
+  },
+  brandContainer: {
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 40,
+  },
+  brandText: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#000",
+    letterSpacing: 0.5,
+  },
+  content: { 
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  formContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 24,
+    marginBottom: 20,
+  },
+  title: { 
+    fontSize: 24, 
+    fontWeight: "600", 
+    color: "#000", 
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  inputContainer: { 
+    marginBottom: 20 
+  },
+  inputLabel: { 
+    fontSize: 16, 
+    fontWeight: "500", 
+    color: "#333", 
+    marginBottom: 8 
+  },
+  input: {
+    backgroundColor: "#f8f8f8",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 8,
     fontSize: 16,
-    fontWeight: '600',
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    color: "#333",
   },
-  footer: {
-    alignItems: 'center',
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#333',
+  inputError: { 
+    borderColor: "#ff4444" 
   },
-  footerText: {
-    textAlign: 'center',
-    color: '#fff',
+  passwordWrapper: { 
+    position: "relative" 
+  },
+  passwordInput: { 
+    paddingRight: 70 
+  },
+  eyeButton: {
+    position: "absolute",
+    right: 16,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    zIndex: 1,
+    padding: 8,
+  },
+  eyeIcon: { 
+    fontSize: 12, 
+    color: "#666", 
+    fontWeight: "600" 
+  },
+  errorContainer: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    marginTop: 6 
+  },
+  errorText: { 
+    color: "#ff4444", 
+    fontSize: 13, 
+    marginLeft: 6 
+  },
+  button: {
+    backgroundColor: "#000",
+    padding: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    marginBottom: 16,
+  },
+  buttonDisabled: { 
+    opacity: 0.7 
+  },
+  buttonText: { 
+    color: "#fff", 
+    fontSize: 16, 
+    fontWeight: "600" 
+  },
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#e0e0e0",
+  },
+  dividerText: {
+    color: "#666",
     fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
+    marginHorizontal: 12,
   },
-  footerSubtext: {
-    textAlign: 'center',
-    color: '#aaa',
+  studentLoginButton: {
+    backgroundColor: "#f8f8f8",
+    padding: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  studentLoginText: {
+    color: "#333",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  noteContainer: {
+    marginTop: 10,
+    padding: 12,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 8,
+  },
+  noteText: {
+    color: "#666",
     fontSize: 12,
-    marginBottom: 8,
-  },
-  footerCopyright: {
-    textAlign: 'center',
-    color: '#666',
-    fontSize: 11,
-    fontStyle: 'italic',
+    textAlign: "center",
+    fontStyle: "italic",
   },
 });

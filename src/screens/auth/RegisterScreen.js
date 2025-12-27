@@ -145,7 +145,7 @@ export default function RegisterScreen({ navigation }) {
             keyboardShouldPersistTaps="never"
             keyboardDismissMode="interactive"
           >
-            {/* Header with time */}
+            {/* Header */}
             <View style={styles.header}>
               <TouchableOpacity 
                 style={styles.backButton}
@@ -153,7 +153,6 @@ export default function RegisterScreen({ navigation }) {
               >
                 <Text style={styles.backButtonText}>←</Text>
               </TouchableOpacity>
-              <Text style={styles.timeText}>9:41</Text>
             </View>
 
             {/* Logo/Brand Section */}
@@ -353,9 +352,6 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: Platform.OS === "ios" ? 10 : 20,
     paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   backButton: {
     padding: 8,
@@ -364,11 +360,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: "#000",
     fontWeight: "bold",
-  },
-  timeText: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: "#000",
   },
   brandContainer: {
     alignItems: "center",
@@ -390,11 +381,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 24,
     marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
   title: { 
     fontSize: 24, 

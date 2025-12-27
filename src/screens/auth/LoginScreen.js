@@ -130,9 +130,14 @@ export default function LoginScreen({ navigation }) {
             keyboardShouldPersistTaps="never"
             keyboardDismissMode="interactive"
           >
-            {/* Header with time */}
+            {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.timeText}>9:41</Text>
+              <TouchableOpacity 
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+              >
+                <Text style={styles.backButtonText}>←</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Logo/Brand Section */}
@@ -279,60 +284,6 @@ export default function LoginScreen({ navigation }) {
                   </TouchableOpacity>
                 </View>
               </View>
-
-              {/* Sign Up Form (Hidden by default, shown when navigating) */}
-              <View style={[styles.formContainer, styles.signupFormContainer]}>
-                <Text style={styles.title}>Create your Account</Text>
-                
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Email</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your email"
-                    placeholderTextColor="#999"
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Password</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your password"
-                    placeholderTextColor="#999"
-                    secureTextEntry={true}
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Confirm Password</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Confirm your password"
-                    placeholderTextColor="#999"
-                    secureTextEntry={true}
-                  />
-                </View>
-
-                <TouchableOpacity style={styles.button} activeOpacity={0.8}>
-                  <Text style={styles.buttonText}>Sign up</Text>
-                </TouchableOpacity>
-
-                <View style={styles.dividerContainer}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>Or sign up with</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                {/* Social Signup Buttons - Placeholder */}
-                <View style={styles.socialButtonsContainer}>
-                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
-                    <Text style={styles.socialButtonText}>Google</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
-                    <Text style={styles.socialButtonText}>Facebook</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
             </Animated.View>
           </ScrollView>
         </TouchableWithoutFeedback>
@@ -352,16 +303,18 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: Platform.OS === "ios" ? 10 : 20,
     paddingHorizontal: 20,
-    alignItems: "flex-end",
   },
-  timeText: {
-    fontSize: 17,
-    fontWeight: "600",
+  backButton: {
+    padding: 8,
+  },
+  backButtonText: {
+    fontSize: 24,
     color: "#000",
+    fontWeight: "bold",
   },
   brandContainer: {
     alignItems: "center",
-    marginTop: 30,
+    marginTop: 10,
     marginBottom: 40,
   },
   brandText: {
@@ -379,14 +332,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 24,
     marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  signupFormContainer: {
-    display: "none", // Hidden by default, shown via navigation
   },
   title: { 
     fontSize: 24, 
