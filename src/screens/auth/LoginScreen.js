@@ -113,6 +113,7 @@ export default function LoginScreen({ navigation }) {
 
   const handleForgotPassword = () => navigation.navigate("ForgotPassword");
   const handleSignUp = () => navigation.navigate("Register");
+  const handleAdminLogin = () => navigation.navigate("AdminLogin");
 
   return (
     <SafeAreaView style={styles.container}>
@@ -136,7 +137,7 @@ export default function LoginScreen({ navigation }) {
 
             {/* Logo/Brand Section */}
             <View style={styles.brandContainer}>
-              <Text style={styles.brandText}>cignifi</Text>
+              <Text style={styles.brandText}>oneGondo.edu</Text>
             </View>
 
             {/* Main Content */}
@@ -238,6 +239,18 @@ export default function LoginScreen({ navigation }) {
                   ) : (
                     <Text style={styles.buttonText}>Sign in</Text>
                   )}
+                </TouchableOpacity>
+
+                {/* Admin Login Link */}
+                <TouchableOpacity
+                  onPress={handleAdminLogin}
+                  style={styles.adminLinkContainer}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.adminLinkText}>
+                    Faculty or Administrator Login
+                  </Text>
+                  <Text style={styles.arrowIcon}>→</Text>
                 </TouchableOpacity>
 
                 <View style={styles.dividerContainer}>
@@ -444,7 +457,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 10,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   buttonDisabled: { 
     opacity: 0.7 
@@ -453,6 +466,22 @@ const styles = StyleSheet.create({
     color: "#fff", 
     fontSize: 16, 
     fontWeight: "600" 
+  },
+  adminLinkContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  adminLinkText: {
+    color: "#666",
+    fontSize: 14,
+    marginRight: 8,
+  },
+  arrowIcon: {
+    fontSize: 16,
+    color: "#666",
   },
   dividerContainer: {
     flexDirection: "row",
