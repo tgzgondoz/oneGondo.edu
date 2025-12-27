@@ -1,28 +1,83 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  StyleSheet
+  StyleSheet,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getDatabase, ref, get } from 'firebase/database';
+import { getAuth, onAuthStateChanged } from 'firebase/auth'; // Optional: For user count from Auth
 
 export default function AdminDashboardScreen({ navigation }) {
-  const stats = [
-    { id: 1, title: 'Total Students', value: '1,234', icon: 'people', color: '#2E86AB' },
-    { id: 2, title: 'Active Courses', value: '45', icon: 'book', color: '#A23B72' },
-  ];
+  const [stats, setStats] = useState([
+    { id: 1, title: 'Total Students', value: '...', icon: 'people', color: '#2E86AB' },
+    { id: 2, title: 'Active Courses', value: '...', icon: 'book', color: '#A23B72' },
+  ]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const db = getDatabase();
+        
+        // 1. Fetch all courses from Realtime Database
+        const coursesRef = ref(db, 'courses');
+        const coursesSnapshot = await get(coursesRef);
+        const courseCount = coursesSnapshot.exists() ? Object.keys(coursesSnapshot.val()).length : 0;
+        
+        // 2. (Option A) Count users from Realtime Database (if you store them under 'users')
+        const usersRef = ref(db, 'users');
+        const usersSnapshot = await get(usersRef);
+        const userCount = usersSnapshot.exists() ? Object.keys(usersSnapshot.val()).length : 0;
+        
+        // 2. (Option B) OR, count users from Firebase Authentication
+        // This is more complex on the frontend. The user list you showed is typically accessed via the Admin SDK on a backend.
+        // For a frontend approximation, you could listen to the auth state, but it only gives the current user.
+        // const auth = getAuth();
+        // onAuthStateChanged(auth, (user) => { ... }); // Not suitable for total count.
+
+        // 3. Update the stats state with the fetched counts
+        setStats([
+          { id: 1, title: 'Total Students', value: userCount.toString(), icon: 'people', color: '#2E86AB' },
+          { id: 2, title: 'Active Courses', value: courseCount.toString(), icon: 'book', color: '#A23B72' },
+        ]);
+        
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        // Optionally, set error state for the user
+        setStats([
+          { id: 1, title: 'Total Students', value: 'Err', icon: 'people', color: '#2E86AB' },
+          { id: 2, title: 'Active Courses', value: 'Err', icon: 'book', color: '#A23B72' },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []); // Empty dependency array means this runs once on mount
 
   const quickActions = [
-    { id: 1, title: 'Add Course', icon: 'add-circle', screen: 'Courses' },
+    { id: 1, title: 'Add Course', icon: 'add-circle', screen: 'CreateCourse' }, // Changed likely target
     { id: 3, title: 'Analytics', icon: 'analytics', screen: 'Analytics' },
   ];
 
   const handleQuickAction = (screen) => {
     navigation.navigate(screen);
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#2E86AB" />
+        <Text style={styles.loadingText}>Loading Dashboard...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -46,6 +101,7 @@ export default function AdminDashboardScreen({ navigation }) {
           ))}
         </View>
 
+        {/* ... rest of your JSX (Quick Actions, Recent Activity) remains exactly the same ... */}
         {/* Quick Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -99,6 +155,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#6c757d',
   },
   scrollView: {
     flex: 1,
