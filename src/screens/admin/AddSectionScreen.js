@@ -1,4 +1,4 @@
-// AddSectionScreen.js - Updated to always navigate to EditLessonScreen
+// screens/admin/AddSectionScreen.js
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,525 +9,271 @@ import {
   SafeAreaView,
   StyleSheet,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Modal,
   ActivityIndicator,
+  RefreshControl,
+  FlatList
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getDatabase, ref, push, set, update, serverTimestamp, get, remove } from 'firebase/database';
+import { getDatabase, ref, push, set, update, remove, onValue, get } from 'firebase/database';
 
-const AddSectionScreen = ({ navigation, route }) => {
-  const { courseId, sectionId } = route.params || {};
+export default function AddSectionScreen({ navigation, route }) {
+  const { courseId } = route.params || {};
+  const [sections, setSections] = useState([]);
   const [sectionTitle, setSectionTitle] = useState('');
   const [sectionDescription, setSectionDescription] = useState('');
-  const [sectionOrder, setSectionOrder] = useState('');
-  const [sectionType, setSectionType] = useState('video');
-  const [lessons, setLessons] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingLessons, setIsLoadingLessons] = useState(false);
-  const [showLessonModal, setShowLessonModal] = useState(false);
-  const [newLessonTitle, setNewLessonTitle] = useState('');
-  const [newLessonContent, setNewLessonContent] = useState('');
-  const [newLessonType, setNewLessonType] = useState('video');
-  const [newLessonDuration, setNewLessonDuration] = useState('');
-  const [newLessonUrl, setNewLessonUrl] = useState('');
-  const [newLessonQuizOptions, setNewLessonQuizOptions] = useState(['', '', '', '']);
-  const [newLessonCorrectAnswer, setNewLessonCorrectAnswer] = useState('A');
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editingLessonId, setEditingLessonId] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingSection, setEditingSection] = useState(null);
+  const [lessons, setLessons] = useState({});
+  const [expandedSection, setExpandedSection] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const db = getDatabase();
 
   useEffect(() => {
-    if (sectionId) {
-      setIsEditMode(true);
-      loadSectionData();
-    } else {
-      loadSectionsCount();
+    if (courseId) {
+      fetchSections();
     }
-  }, [sectionId]);
+  }, [courseId]);
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      if (sectionId) {
-        loadExistingLessons();
+  const fetchSections = () => {
+    setLoading(true);
+    try {
+      const sectionsRef = ref(db, `courses/${courseId}/sections`);
+      onValue(sectionsRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const sectionList = Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+          }));
+          // Sort by order
+          sectionList.sort((a, b) => (a.order || 0) - (b.order || 0));
+          setSections(sectionList);
+          
+          // Fetch lessons for each section
+          sectionList.forEach(section => {
+            fetchLessonsForSection(section.id);
+          });
+        } else {
+          setSections([]);
+        }
+        setLoading(false);
+        setRefreshing(false);
+      });
+    } catch (error) {
+      console.error('Error fetching sections:', error);
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const fetchLessonsForSection = (sectionId) => {
+    const lessonsRef = ref(db, `courses/${courseId}/sections/${sectionId}/lessons`);
+    onValue(lessonsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const lessonList = Object.keys(data).map(key => ({
+          id: key,
+          ...data[key]
+        }));
+        // Sort by order
+        lessonList.sort((a, b) => (a.order || 0) - (b.order || 0));
+        setLessons(prev => ({
+          ...prev,
+          [sectionId]: lessonList
+        }));
+      } else {
+        setLessons(prev => ({
+          ...prev,
+          [sectionId]: []
+        }));
       }
     });
-
-    return unsubscribe;
-  }, [navigation, sectionId]);
-
-  const loadSectionData = async () => {
-    setIsLoadingLessons(true);
-    try {
-      const sectionRef = ref(db, `courses/${courseId}/sections/${sectionId}`);
-      const sectionSnapshot = await get(sectionRef);
-      
-      if (sectionSnapshot.exists()) {
-        const sectionData = sectionSnapshot.val();
-        setSectionTitle(sectionData.title || '');
-        setSectionDescription(sectionData.description || '');
-        setSectionOrder(sectionData.order?.toString() || '');
-        setSectionType(sectionData.type || 'video');
-        
-        await loadExistingLessons();
-      }
-    } catch (error) {
-      console.error('Error loading section data:', error);
-      Alert.alert('Error', 'Failed to load section data');
-    } finally {
-      setIsLoadingLessons(false);
-    }
   };
 
-  const loadExistingLessons = async () => {
-    try {
-      const lessonsRef = ref(db, `courses/${courseId}/sections/${sectionId}/lessons`);
-      const snapshot = await get(lessonsRef);
-      
-      if (snapshot.exists()) {
-        const lessonsData = snapshot.val();
-        const lessonsArray = Object.keys(lessonsData).map(key => ({
-          id: key,
-          ...lessonsData[key],
-          firebaseId: key,
-        }));
-        
-        lessonsArray.sort((a, b) => (a.order || 0) - (b.order || 0));
-        setLessons(lessonsArray);
-      } else {
-        setLessons([]);
-      }
-    } catch (error) {
-      console.error('Error loading lessons:', error);
-      Alert.alert('Error', 'Failed to load lessons');
-    }
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchSections();
   };
 
-  const loadSectionsCount = async () => {
-    try {
-      const courseSectionsRef = ref(db, `courses/${courseId}/sections`);
-      const snapshot = await get(courseSectionsRef);
-      if (snapshot.exists()) {
-        const sections = snapshot.val();
-        const sectionsCount = Object.keys(sections).length;
-        setSectionOrder((sectionsCount + 1).toString());
-      } else {
-        setSectionOrder('1');
-      }
-    } catch (error) {
-      console.error('Error loading sections count:', error);
-      setSectionOrder('1');
-    }
-  };
-
-  const addNewLesson = async () => {
-    if (!newLessonTitle.trim()) {
-      Alert.alert('Error', 'Please enter a lesson title');
+  const handleSaveSection = async () => {
+    if (!sectionTitle.trim()) {
+      Alert.alert('Error', 'Please enter section title');
       return;
     }
 
-    // Validate based on lesson type
-    if (newLessonType === 'video' || newLessonType === 'document') {
-      if (!newLessonUrl.trim()) {
-        Alert.alert('Error', `Please enter a ${newLessonType} URL`);
-        return;
-      }
-    }
-
-    if (newLessonType === 'quiz') {
-      const emptyOptions = newLessonQuizOptions.filter(opt => !opt.trim());
-      if (emptyOptions.length > 0) {
-        Alert.alert('Error', 'Please fill all quiz options');
-        return;
-      }
-      if (!newLessonContent.trim()) {
-        Alert.alert('Error', 'Please enter the quiz question');
-        return;
-      }
-    }
+    setUploading(true);
 
     try {
-      setIsLoading(true);
-      
-      // Prepare lesson data
-      const lessonData = {
-        title: newLessonTitle.trim(),
-        content: newLessonContent.trim() || '',
-        type: newLessonType,
-        duration: newLessonDuration.trim() || '10:00',
-        url: newLessonUrl.trim(),
-        order: editingLessonId ? 
-          lessons.find(l => l.id === editingLessonId)?.order || lessons.length + 1 : 
-          lessons.length + 1,
-        updatedAt: serverTimestamp(),
-        ...(newLessonType === 'quiz' && {
-          options: newLessonQuizOptions.map(opt => opt.trim()),
-          correctAnswer: newLessonCorrectAnswer,
-          maxScore: 10,
-        }),
-        ...((newLessonType === 'video' || newLessonType === 'document') && {
-          fileType: getFileType(newLessonUrl),
-        }),
-      };
-
-      let lessonFirebaseId = editingLessonId;
-
-      if (isEditMode && sectionId) {
-        // Save to Firebase when editing an existing section
-        if (editingLessonId && lessons.find(l => l.id === editingLessonId)?.firebaseId) {
-          // Update existing Firebase lesson
-          const lessonRef = ref(db, `courses/${courseId}/sections/${sectionId}/lessons/${editingLessonId}`);
-          await update(lessonRef, lessonData);
-          lessonFirebaseId = editingLessonId;
-        } else {
-          // Create new lesson in Firebase
-          const sectionLessonsRef = ref(db, `courses/${courseId}/sections/${sectionId}/lessons`);
-          const newLessonRef = push(sectionLessonsRef);
-          lessonFirebaseId = newLessonRef.key;
-          await set(newLessonRef, {
-            ...lessonData,
-            createdAt: serverTimestamp(),
+      if (editingSection) {
+        // Update existing section
+        const sectionRef = ref(db, `courses/${courseId}/sections/${editingSection.id}`);
+        await update(sectionRef, {
+          title: sectionTitle.trim(),
+          description: sectionDescription.trim(),
+          updatedAt: Date.now()
+        });
+        Alert.alert('Success', 'Section updated successfully!');
+      } else {
+        // Create new section
+        const sectionsRef = ref(db, `courses/${courseId}/sections`);
+        const newSectionRef = push(sectionsRef);
+        const sectionOrder = sections.length + 1;
+        
+        await set(newSectionRef, {
+          title: sectionTitle.trim(),
+          description: sectionDescription.trim(),
+          order: sectionOrder,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          lessonsCount: 0
+        });
+        
+        // Update course's total sections count
+        const courseRef = ref(db, `courses/${courseId}`);
+        const snapshot = await get(courseRef);
+        if (snapshot.exists()) {
+          const courseData = snapshot.val();
+          await update(courseRef, {
+            totalSections: (courseData.totalSections || 0) + 1,
+            updatedAt: Date.now()
           });
         }
-
-        // Update local state
-        const updatedLessons = editingLessonId ? 
-          lessons.map(lesson => 
-            lesson.id === editingLessonId ? 
-            { ...lessonData, id: editingLessonId, firebaseId: lessonFirebaseId } : lesson
-          ) : 
-          [...lessons, { ...lessonData, id: Date.now().toString(), firebaseId: lessonFirebaseId }];
         
-        setLessons(updatedLessons);
-        
-        // Update section lessons count
-        const sectionRef = ref(db, `courses/${courseId}/sections/${sectionId}`);
-        await update(sectionRef, {
-          lessonsCount: updatedLessons.length,
-          updatedAt: serverTimestamp(),
-        });
-      } else {
-        // Local only (for new sections not saved yet)
-        const newLesson = {
-          ...lessonData,
-          id: editingLessonId || Date.now().toString(),
-        };
-
-        if (editingLessonId) {
-          setLessons(lessons.map(lesson => 
-            lesson.id === editingLessonId ? newLesson : lesson
-          ));
-        } else {
-          setLessons([...lessons, newLesson]);
-        }
+        Alert.alert('Success', 'Section created successfully!');
       }
 
-      Alert.alert('Success', editingLessonId ? 'Lesson updated successfully!' : 'Lesson added successfully');
-      resetLessonForm();
+      // Reset form
+      setSectionTitle('');
+      setSectionDescription('');
+      setEditingSection(null);
+      setIsModalVisible(false);
+      setUploading(false);
+      
     } catch (error) {
-      console.error('Error saving lesson:', error);
-      Alert.alert('Error', 'Failed to save lesson. Please try again.');
-    } finally {
-      setIsLoading(false);
+      console.error('Error saving section:', error);
+      Alert.alert('Error', 'Failed to save section');
+      setUploading(false);
     }
   };
 
-  const resetLessonForm = () => {
-    setNewLessonTitle('');
-    setNewLessonContent('');
-    setNewLessonType(sectionType === 'quiz' ? 'quiz' : 'video');
-    setNewLessonDuration('');
-    setNewLessonUrl('');
-    setNewLessonQuizOptions(['', '', '', '']);
-    setNewLessonCorrectAnswer('A');
-    setShowLessonModal(false);
-    setEditingLessonId(null);
+  const handleEditSection = (section) => {
+    setEditingSection(section);
+    setSectionTitle(section.title);
+    setSectionDescription(section.description || '');
+    setIsModalVisible(true);
   };
 
-  const editLesson = (lesson) => {
-    if (isEditMode && sectionId) {
-      // For Firebase lessons, navigate to EditLessonScreen
-      navigation.navigate('EditLesson', {
-        courseId,
-        sectionId,
-        lessonId: lesson.firebaseId || lesson.id,
-      });
-    } else {
-      // For local lessons (when creating new section), show modal
-      setNewLessonTitle(lesson.title || '');
-      setNewLessonContent(lesson.content || '');
-      setNewLessonType(lesson.type || 'video');
-      setNewLessonDuration(lesson.duration || '');
-      setNewLessonUrl(lesson.url || '');
+  const handleDeleteSection = (sectionId) => {
+    Alert.alert(
+      'Delete Section',
+      'Are you sure you want to delete this section? All lessons in this section will also be deleted.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => deleteSection(sectionId)
+        }
+      ]
+    );
+  };
+
+  const deleteSection = async (sectionId) => {
+    try {
+      const sectionRef = ref(db, `courses/${courseId}/sections/${sectionId}`);
+      await remove(sectionRef);
       
-      if (lesson.type === 'quiz') {
-        setNewLessonQuizOptions(lesson.options || ['', '', '', '']);
-        setNewLessonCorrectAnswer(lesson.correctAnswer || 'A');
+      // Update course's total sections count
+      const courseRef = ref(db, `courses/${courseId}`);
+      const snapshot = await get(courseRef);
+      if (snapshot.exists()) {
+        const courseData = snapshot.val();
+        await update(courseRef, {
+          totalSections: Math.max(0, (courseData.totalSections || 0) - 1),
+          updatedAt: Date.now()
+        });
       }
       
-      setEditingLessonId(lesson.id);
-      setShowLessonModal(true);
+      Alert.alert('Success', 'Section deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting section:', error);
+      Alert.alert('Error', 'Failed to delete section');
     }
   };
 
-  const deleteLessonFromFirebase = async (lessonId) => {
-    if (!lessonId || !sectionId) return;
-    
+  const toggleSectionExpand = (sectionId) => {
+    setExpandedSection(expandedSection === sectionId ? null : sectionId);
+  };
+
+  const handleAddLesson = (sectionId) => {
+    navigation.navigate('EditLesson', { 
+      courseId, 
+      sectionId, 
+      lessonId: null // Null for new lesson
+    });
+  };
+
+  const handleEditLesson = (sectionId, lesson) => {
+    navigation.navigate('EditLesson', { 
+      courseId, 
+      sectionId, 
+      lessonId: lesson.id 
+    });
+  };
+
+  const handleDeleteLesson = (sectionId, lessonId) => {
+    Alert.alert(
+      'Delete Lesson',
+      'Are you sure you want to delete this lesson?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => deleteLesson(sectionId, lessonId)
+        }
+      ]
+    );
+  };
+
+  const deleteLesson = async (sectionId, lessonId) => {
     try {
-      setIsLoading(true);
       const lessonRef = ref(db, `courses/${courseId}/sections/${sectionId}/lessons/${lessonId}`);
       await remove(lessonRef);
       
-      // Update local state
-      const updatedLessons = lessons.filter(lesson => lesson.firebaseId !== lessonId);
-      setLessons(updatedLessons);
-      
       // Update section lessons count
       const sectionRef = ref(db, `courses/${courseId}/sections/${sectionId}`);
-      await update(sectionRef, {
-        lessonsCount: updatedLessons.length,
-        updatedAt: serverTimestamp(),
-      });
+      const snapshot = await get(sectionRef);
+      if (snapshot.exists()) {
+        const sectionData = snapshot.val();
+        await update(sectionRef, {
+          lessonsCount: Math.max(0, (sectionData.lessonsCount || 1) - 1),
+          updatedAt: Date.now()
+        });
+      }
       
-      Alert.alert('Success', 'Lesson deleted successfully');
+      Alert.alert('Success', 'Lesson deleted successfully!');
     } catch (error) {
       console.error('Error deleting lesson:', error);
       Alert.alert('Error', 'Failed to delete lesson');
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const removeLesson = (lesson) => {
-    if (isEditMode && sectionId && lesson.firebaseId) {
-      Alert.alert(
-        'Delete Lesson',
-        'Are you sure you want to delete this lesson?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Delete', 
-            style: 'destructive',
-            onPress: () => deleteLessonFromFirebase(lesson.firebaseId)
-          }
-        ]
-      );
-    } else {
-      setLessons(lessons.filter(l => l.id !== lesson.id));
-    }
-  };
-
-  const createOrUpdateSection = async () => {
-    if (!sectionTitle.trim()) {
-      Alert.alert('Error', 'Please enter a section title');
-      return;
-    }
-
-    if (lessons.length === 0) {
-      Alert.alert('Error', 'Please add at least one lesson');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const sectionData = {
-        title: sectionTitle.trim(),
-        description: sectionDescription.trim() || '',
-        type: sectionType,
-        order: parseInt(sectionOrder) || 1,
-        lessonsCount: lessons.length,
-        updatedAt: serverTimestamp(),
-        ...(sectionType === 'quiz' && {
-          totalQuestions: lessons.length,
-          passingScore: 70,
-        }),
-        ...(sectionType === 'video' && {
-          totalDuration: calculateTotalDuration(),
-        }),
-      };
-
-      let sectionIdToUse = sectionId;
-
-      if (isEditMode) {
-        // Update existing section
-        const sectionRef = ref(db, `courses/${courseId}/sections/${sectionId}`);
-        await update(sectionRef, sectionData);
-        
-        // Check if there are any local-only lessons to save to Firebase
-        const localLessons = lessons.filter(lesson => !lesson.firebaseId);
-        if (localLessons.length > 0) {
-          const savePromises = localLessons.map(async (lesson) => {
-            const lessonData = {
-              title: lesson.title,
-              content: lesson.content,
-              type: lesson.type,
-              duration: lesson.duration,
-              url: lesson.url,
-              order: lesson.order,
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-              ...(lesson.type === 'quiz' && {
-                options: lesson.options || [],
-                correctAnswer: lesson.correctAnswer || 'A',
-                maxScore: lesson.maxScore || 10,
-              }),
-              ...((lesson.type === 'video' || lesson.type === 'document') && {
-                fileType: getFileType(lesson.url),
-              }),
-            };
-
-            const newLessonRef = push(ref(db, `courses/${courseId}/sections/${sectionId}/lessons`));
-            return set(newLessonRef, lessonData);
-          });
-
-          await Promise.all(savePromises);
-        }
-      } else {
-        // Create new section
-        const courseSectionsRef = ref(db, `courses/${courseId}/sections`);
-        const newSectionRef = push(courseSectionsRef);
-        sectionIdToUse = newSectionRef.key;
-
-        await set(newSectionRef, {
-          ...sectionData,
-          createdAt: serverTimestamp(),
-        });
-
-        // Save lessons to Firebase
-        const lessonsPromises = lessons.map(async (lesson, index) => {
-          const lessonData = {
-            title: lesson.title,
-            content: lesson.content,
-            type: lesson.type,
-            duration: lesson.duration,
-            url: lesson.url,
-            order: index + 1,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-            ...(lesson.type === 'quiz' && {
-              options: lesson.options || [],
-              correctAnswer: lesson.correctAnswer || 'A',
-              maxScore: lesson.maxScore || 10,
-            }),
-            ...((lesson.type === 'video' || lesson.type === 'document') && {
-              fileType: getFileType(lesson.url),
-            }),
-          };
-
-          const sectionLessonsRef = ref(db, `courses/${courseId}/sections/${sectionIdToUse}/lessons`);
-          const newLessonRef = push(sectionLessonsRef);
-          return set(newLessonRef, lessonData);
-        });
-
-        await Promise.all(lessonsPromises);
-
-        // Update course with section count
-        const courseRef = ref(db, `courses/${courseId}`);
-        const courseSnapshot = await get(courseRef);
-        if (courseSnapshot.exists()) {
-          const courseData = courseSnapshot.val();
-          const sectionTypeCount = courseData.sectionTypeCount || {};
-          sectionTypeCount[sectionType] = (sectionTypeCount[sectionType] || 0) + 1;
-          
-          await update(courseRef, {
-            totalSections: (courseData.totalSections || 0) + 1,
-            sectionTypeCount: sectionTypeCount,
-            updatedAt: serverTimestamp(),
-          });
-        }
-      }
-
-      setIsLoading(false);
-      Alert.alert(
-        'Success',
-        `${sectionType.charAt(0).toUpperCase() + sectionType.slice(1)} section ${isEditMode ? 'updated' : 'created'} successfully!`,
-        [
-          {
-            text: 'Add Another',
-            style: 'default',
-            onPress: () => {
-              if (!isEditMode) {
-                setSectionTitle('');
-                setSectionDescription('');
-                setLessons([]);
-                loadSectionsCount();
-              } else {
-                navigation.goBack();
-              }
-            },
-          },
-          {
-            text: 'Done',
-            style: 'cancel',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
-    } catch (error) {
-      setIsLoading(false);
-      console.error('Error saving section:', error);
-      Alert.alert('Error', `Failed to ${isEditMode ? 'update' : 'create'} section. Please try again.`);
-    }
-  };
-
-  const calculateTotalDuration = () => {
-    let totalSeconds = 0;
-    lessons.forEach(lesson => {
-      if (lesson.duration) {
-        const [minutes, seconds] = lesson.duration.split(':').map(Number);
-        totalSeconds += (minutes * 60) + (seconds || 0);
-      }
-    });
-    return totalSeconds;
-  };
-
-  const getFileType = (url) => {
-    const extension = url.split('.').pop().toLowerCase();
-    if (['pdf'].includes(extension)) return 'pdf';
-    if (['doc', 'docx'].includes(extension)) return 'word';
-    if (['ppt', 'pptx'].includes(extension)) return 'powerpoint';
-    if (['mp4', 'mov', 'avi'].includes(extension)) return 'video';
-    return 'file';
-  };
-
-  const updateQuizOption = (index, value) => {
-    const updatedOptions = [...newLessonQuizOptions];
-    updatedOptions[index] = value;
-    setNewLessonQuizOptions(updatedOptions);
-  };
-
-  const getSectionTypeIcon = (type) => {
+  const getLessonIcon = (type) => {
     switch (type) {
-      case 'quiz': return 'help-circle';
-      case 'video': return 'videocam';
-      case 'document': return 'document-text';
-      default: return 'folder';
+      case 'video': return 'videocam-outline';
+      case 'text': return 'document-text-outline';
+      case 'document': return 'document-outline';
+      case 'quiz': return 'help-circle-outline';
+      default: return 'document-outline';
     }
   };
 
-  const getSectionTypeColor = (type) => {
-    switch (type) {
-      case 'quiz': return '#ffc107';
-      case 'video': return '#dc3545';
-      case 'document': return '#28a745';
-      default: return '#6c757d';
-    }
-  };
-
-  const getLessonTypeIcon = (type) => {
-    switch (type) {
-      case 'video': return 'videocam';
-      case 'text': return 'document-text';
-      case 'document': return 'document-attach';
-      case 'quiz': return 'help-circle';
-      default: return 'document';
-    }
-  };
-
-  const getLessonTypeColor = (type) => {
+  const getLessonColor = (type) => {
     switch (type) {
       case 'video': return '#dc3545';
       case 'text': return '#28a745';
@@ -537,12 +283,123 @@ const AddSectionScreen = ({ navigation, route }) => {
     }
   };
 
-  if (isLoadingLessons) {
+  const renderLessonItem = ({ item, sectionId }) => (
+    <View style={styles.lessonItem}>
+      <View style={styles.lessonInfo}>
+        <Ionicons 
+          name={getLessonIcon(item.type)} 
+          size={20} 
+          color={getLessonColor(item.type)} 
+        />
+        <View style={styles.lessonDetails}>
+          <Text style={styles.lessonTitle}>{item.title}</Text>
+          <Text style={styles.lessonMeta}>
+            {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
+            {item.duration ? ` • ${item.duration}` : ''}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.lessonActions}>
+        <TouchableOpacity 
+          style={styles.lessonActionBtn}
+          onPress={() => handleEditLesson(sectionId, item)}
+        >
+          <Ionicons name="create-outline" size={18} color="#2E86AB" />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.lessonActionBtn}
+          onPress={() => handleDeleteLesson(sectionId, item.id)}
+        >
+          <Ionicons name="trash-outline" size={18} color="#dc3545" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderSection = ({ item }) => (
+    <View style={styles.sectionCard}>
+      <TouchableOpacity 
+        style={styles.sectionHeader}
+        onPress={() => toggleSectionExpand(item.id)}
+      >
+        <View style={styles.sectionTitleContainer}>
+          <Ionicons 
+            name={expandedSection === item.id ? 'chevron-down' : 'chevron-forward'} 
+            size={20} 
+            color="#6c757d" 
+          />
+          <Text style={styles.sectionTitle}>{item.title}</Text>
+          <Text style={styles.lessonsCount}>
+            ({lessons[item.id]?.length || 0} lessons)
+          </Text>
+        </View>
+        <View style={styles.sectionActions}>
+          <TouchableOpacity 
+            style={styles.sectionActionBtn}
+            onPress={() => handleEditSection(item)}
+          >
+            <Ionicons name="create-outline" size={18} color="#2E86AB" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.sectionActionBtn}
+            onPress={() => handleDeleteSection(item.id)}
+          >
+            <Ionicons name="trash-outline" size={18} color="#dc3545" />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+
+      {expandedSection === item.id && (
+        <View style={styles.expandedContent}>
+          {item.description ? (
+            <Text style={styles.sectionDescription}>{item.description}</Text>
+          ) : null}
+          
+          {/* Lessons List */}
+          <View style={styles.lessonsContainer}>
+            <View style={styles.lessonsHeader}>
+              <Text style={styles.lessonsTitle}>Lessons</Text>
+              <TouchableOpacity 
+                style={styles.addLessonBtn}
+                onPress={() => handleAddLesson(item.id)}
+              >
+                <Ionicons name="add" size={18} color="#fff" />
+                <Text style={styles.addLessonText}>Add Lesson</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {lessons[item.id]?.length > 0 ? (
+              <FlatList
+                data={lessons[item.id]}
+                renderItem={({ item: lesson }) => renderLessonItem({ item: lesson, sectionId: item.id })}
+                keyExtractor={lesson => lesson.id}
+                scrollEnabled={false}
+              />
+            ) : (
+              <View style={styles.emptyLessons}>
+                <Ionicons name="book-outline" size={40} color="#6c757d" />
+                <Text style={styles.emptyLessonsText}>No lessons yet</Text>
+                <TouchableOpacity 
+                  style={styles.emptyLessonsBtn}
+                  onPress={() => handleAddLesson(item.id)}
+                >
+                  <Ionicons name="add-circle" size={18} color="#fff" />
+                  <Text style={styles.emptyLessonsBtnText}>Add First Lesson</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+    </View>
+  );
+
+  if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007bff" />
-          <Text style={styles.loadingText}>Loading lessons...</Text>
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color="#2E86AB" />
+          <Text style={styles.loadingText}>Loading sections...</Text>
         </View>
       </SafeAreaView>
     );
@@ -550,399 +407,155 @@ const AddSectionScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+      <ScrollView 
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#2E86AB']}
+          />
+        }
       >
-        <ScrollView style={styles.scrollView}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={24} color="#333" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>
-              {isEditMode ? 'Edit Section' : 'Add New Section'}
-            </Text>
-            <View style={{ width: 24 }} />
-          </View>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Manage Sections & Lessons</Text>
+          <TouchableOpacity 
+            style={styles.addSectionBtn}
+            onPress={() => {
+              setEditingSection(null);
+              setSectionTitle('');
+              setSectionDescription('');
+              setIsModalVisible(true);
+            }}
+          >
+            <Ionicons name="add" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
 
-          {/* Section Form */}
-          <View style={styles.form}>
-            {/* Section Type */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Section Type *</Text>
-              <View style={styles.typeButtons}>
-                {['video', 'quiz', 'document'].map((type) => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.typeButton,
-                      sectionType === type && styles.typeButtonActive
-                    ]}
-                    onPress={() => setSectionType(type)}
-                    disabled={isEditMode}
-                  >
-                    <Ionicons 
-                      name={getSectionTypeIcon(type)} 
-                      size={20} 
-                      color={sectionType === type ? '#fff' : getSectionTypeColor(type)} 
-                    />
-                    <Text style={[
-                      styles.typeButtonText,
-                      sectionType === type && styles.typeButtonTextActive,
-                      isEditMode && styles.disabledText
-                    ]}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+        <View style={styles.content}>
+          {sections.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="library-outline" size={80} color="#6c757d" />
+              <Text style={styles.emptyTitle}>No Sections Yet</Text>
+              <Text style={styles.emptyText}>
+                Start by adding your first section to organize course content
+              </Text>
+              <TouchableOpacity 
+                style={styles.emptyBtn}
+                onPress={() => setIsModalVisible(true)}
+              >
+                <Ionicons name="add-circle" size={20} color="#fff" />
+                <Text style={styles.emptyBtnText}>Add First Section</Text>
+              </TouchableOpacity>
             </View>
-
-            {/* Section Title */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Section Title *</Text>
-              <TextInput
-                style={styles.input}
-                value={sectionTitle}
-                onChangeText={setSectionTitle}
-                placeholder={`Enter ${sectionType} section title`}
-                editable={!isLoading}
-              />
-            </View>
-
-            {/* Section Description */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={sectionDescription}
-                onChangeText={setSectionDescription}
-                placeholder="Enter section description"
-                multiline
-                numberOfLines={3}
-                editable={!isLoading}
-              />
-            </View>
-
-            {/* Section Order */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Order</Text>
-              <TextInput
-                style={styles.input}
-                value={sectionOrder}
-                onChangeText={setSectionOrder}
-                placeholder="Section order number"
-                keyboardType="number-pad"
-                editable={!isLoading}
-              />
-            </View>
-
-            {/* Lessons Section */}
-            <View style={styles.lessonsContainer}>
-              <View style={styles.lessonsHeader}>
-                <Text style={styles.lessonsTitle}>
-                  {sectionType === 'quiz' ? 'Quiz Questions' : 'Lessons'} ({lessons.length})
+          ) : (
+            <FlatList
+              data={sections}
+              renderItem={renderSection}
+              keyExtractor={item => item.id}
+              scrollEnabled={false}
+              ListHeaderComponent={
+                <Text style={styles.totalSections}>
+                  {sections.length} Section{sections.length !== 1 ? 's' : ''}
                 </Text>
-                <TouchableOpacity 
-                  style={styles.addLessonBtn} 
-                  onPress={() => setShowLessonModal(true)}
-                  disabled={isLoading}
-                >
-                  <Ionicons name="add-circle" size={24} color="#007bff" />
-                  <Text style={styles.addLessonText}>
-                    {sectionType === 'quiz' ? 'Add Question' : 'Add Lesson'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              }
+            />
+          )}
+        </View>
+      </ScrollView>
 
-              {lessons.map((lesson) => (
-                <TouchableOpacity 
-                  key={lesson.id} 
-                  style={styles.lessonItem}
-                  onPress={() => editLesson(lesson)}
-                  disabled={isLoading}
-                >
-                  <View style={styles.lessonInfo}>
-                    <View style={styles.lessonHeader}>
-                      <Ionicons 
-                        name={getLessonTypeIcon(lesson.type)} 
-                        size={20} 
-                        color={getLessonTypeColor(lesson.type)} 
-                      />
-                      <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                      {lesson.firebaseId && (
-                        <View style={styles.savedBadge}>
-                          <Ionicons name="cloud-done" size={12} color="#28a745" />
-                          <Text style={styles.savedBadgeText}>Saved</Text>
-                        </View>
-                      )}
-                    </View>
-                    {lesson.content ? (
-                      <Text style={styles.lessonContent} numberOfLines={1}>
-                        {lesson.content}
-                      </Text>
-                    ) : null}
-                    {lesson.url ? (
-                      <Text style={styles.lessonUrl} numberOfLines={1}>
-                        {lesson.url}
-                      </Text>
-                    ) : null}
-                    {lesson.type === 'quiz' && (
-                      <Text style={styles.quizInfo}>
-                        Options: {lesson.options?.length || 0} | Correct: {lesson.correctAnswer}
-                      </Text>
-                    )}
-                    <Text style={styles.lessonDuration}>Duration: {lesson.duration}</Text>
-                    <Text style={styles.lessonOrder}>Order: {lesson.order}</Text>
-                  </View>
-                  <TouchableOpacity 
-                    onPress={() => removeLesson(lesson)}
-                    disabled={isLoading}
-                  >
-                    <Ionicons name="trash-outline" size={24} color="#dc3545" />
-                  </TouchableOpacity>
-                </TouchableOpacity>
-              ))}
-
-              {lessons.length === 0 && (
-                <View style={styles.emptyLessons}>
-                  <Ionicons name={
-                    sectionType === 'quiz' ? 'help-circle-outline' :
-                    sectionType === 'video' ? 'videocam-outline' :
-                    'document-outline'
-                  } size={48} color="#adb5bd" />
-                  <Text style={styles.emptyLessonsText}>
-                    {sectionType === 'quiz' ? 'No quiz questions added yet.' : 'No lessons added yet.'}
-                  </Text>
-                  <Text style={styles.emptyLessonsSubText}>
-                    Click "Add {sectionType === 'quiz' ? 'Question' : 'Lesson'}" to create content.
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Save Button */}
-            <TouchableOpacity 
-              style={[styles.createBtn, isLoading && styles.disabledBtn]}
-              onPress={createOrUpdateSection}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <>
-                  <Ionicons name={isEditMode ? "save" : "folder-open"} size={24} color="#fff" />
-                  <Text style={styles.createBtnText}>
-                    {isEditMode ? 'Update' : 'Create'} {sectionType === 'quiz' ? 'Quiz' : 
-                           sectionType === 'video' ? 'Video' : 
-                           'Document'} Section
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      {/* Add/Edit Lesson Modal - Only for local lessons when creating new section */}
+      {/* Add/Edit Section Modal */}
       <Modal
-        transparent={true}
-        visible={showLessonModal}
+        visible={isModalVisible}
         animationType="slide"
-        onRequestClose={resetLessonForm}
+        transparent={true}
+        onRequestClose={() => setIsModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {editingLessonId ? 'Edit Lesson' : 
-                 sectionType === 'quiz' ? 'Add Quiz Question' : 'Add Lesson'}
+                {editingSection ? 'Edit Section' : 'Add New Section'}
               </Text>
-              <TouchableOpacity onPress={resetLessonForm}>
+              <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                 <Ionicons name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScroll}>
-              <View style={styles.modalInputGroup}>
-                <Text style={styles.modalLabel}>
-                  {sectionType === 'quiz' ? 'Question *' : 'Lesson Title *'}
-                </Text>
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Section Title *</Text>
                 <TextInput
-                  style={styles.modalInput}
-                  value={newLessonTitle}
-                  onChangeText={setNewLessonTitle}
-                  placeholder={
-                    sectionType === 'quiz' ? 
-                    "Enter question" : 
-                    "Enter lesson title"
-                  }
-                  editable={!isLoading}
+                  style={styles.input}
+                  value={sectionTitle}
+                  onChangeText={setSectionTitle}
+                  placeholder="Enter section title"
+                  autoFocus={true}
                 />
               </View>
 
-              <View style={styles.modalInputGroup}>
-                <Text style={styles.modalLabel}>Lesson Type</Text>
-                <View style={styles.typeButtons}>
-                  {(sectionType === 'quiz' ? 
-                    ['quiz'] : ['video', 'document', 'text']).map((type) => (
-                    <TouchableOpacity
-                      key={type}
-                      style={[
-                        styles.typeButton,
-                        newLessonType === type && styles.typeButtonActive
-                      ]}
-                      onPress={() => setNewLessonType(type)}
-                      disabled={isLoading}
-                    >
-                      <Ionicons 
-                        name={getLessonTypeIcon(type)} 
-                        size={20} 
-                        color={newLessonType === type ? '#fff' : getLessonTypeColor(type)} 
-                      />
-                      <Text style={[
-                        styles.typeButtonText,
-                        newLessonType === type && styles.typeButtonTextActive
-                      ]}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {(newLessonType === 'video' || newLessonType === 'document') && (
-                <View style={styles.modalInputGroup}>
-                  <Text style={styles.modalLabel}>
-                    {newLessonType === 'video' ? 'Video URL *' : 'Document URL *'}
-                  </Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    value={newLessonUrl}
-                    onChangeText={setNewLessonUrl}
-                    placeholder={`Enter ${newLessonType} URL (YouTube, PDF, etc.)`}
-                    autoCapitalize="none"
-                    editable={!isLoading}
-                  />
-                </View>
-              )}
-
-              <View style={styles.modalInputGroup}>
-                <Text style={styles.modalLabel}>
-                  {newLessonType === 'quiz' ? 'Question Details *' : 'Content'}
-                </Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Description (Optional)</Text>
                 <TextInput
-                  style={[styles.modalInput, styles.modalTextArea]}
-                  value={newLessonContent}
-                  onChangeText={setNewLessonContent}
-                  placeholder={
-                    newLessonType === 'quiz' ? 
-                    "Enter the full question and any additional information" :
-                    "Enter lesson content or description"
-                  }
+                  style={[styles.input, styles.textArea]}
+                  value={sectionDescription}
+                  onChangeText={setSectionDescription}
+                  placeholder="Enter section description"
                   multiline
-                  numberOfLines={newLessonType === 'quiz' ? 3 : 4}
-                  editable={!isLoading}
+                  numberOfLines={4}
                 />
               </View>
 
-              {newLessonType === 'quiz' && (
-                <>
-                  <View style={styles.modalInputGroup}>
-                    <Text style={styles.modalLabel}>Quiz Options *</Text>
-                    {['A', 'B', 'C', 'D'].map((option, index) => (
-                      <View key={option} style={styles.quizOptionRow}>
-                        <Text style={styles.quizOptionLabel}>Option {option}:</Text>
-                        <TextInput
-                          style={styles.quizOptionInput}
-                          value={newLessonQuizOptions[index]}
-                          onChangeText={(text) => updateQuizOption(index, text)}
-                          placeholder={`Enter option ${option}`}
-                          editable={!isLoading}
-                        />
-                      </View>
-                    ))}
-                  </View>
-
-                  <View style={styles.modalInputGroup}>
-                    <Text style={styles.modalLabel}>Correct Answer *</Text>
-                    <View style={styles.correctAnswerButtons}>
-                      {['A', 'B', 'C', 'D'].map((option) => (
-                        <TouchableOpacity
-                          key={option}
-                          style={[
-                            styles.correctAnswerButton,
-                            newLessonCorrectAnswer === option && styles.correctAnswerButtonActive
-                          ]}
-                          onPress={() => setNewLessonCorrectAnswer(option)}
-                          disabled={isLoading}
-                        >
-                          <Text style={[
-                            styles.correctAnswerButtonText,
-                            newLessonCorrectAnswer === option && styles.correctAnswerButtonTextActive
-                          ]}>
-                            {option}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                </>
-              )}
-
-              <View style={styles.modalInputGroup}>
-                <Text style={styles.modalLabel}>Duration (Optional)</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={newLessonDuration}
-                  onChangeText={setNewLessonDuration}
-                  placeholder="e.g., 10:00 (MM:SS)"
-                  editable={!isLoading}
-                />
+              <View style={styles.modalActions}>
+                <TouchableOpacity 
+                  style={styles.cancelBtn}
+                  onPress={() => setIsModalVisible(false)}
+                  disabled={uploading}
+                >
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.saveBtn, uploading && styles.disabledBtn]}
+                  onPress={handleSaveSection}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="save" size={18} color="#fff" />
+                      <Text style={styles.saveBtnText}>
+                        {editingSection ? 'Update' : 'Save'}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
               </View>
-
-              <TouchableOpacity 
-                style={[styles.modalAddButton, isLoading && styles.disabledBtn]}
-                onPress={addNewLesson}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <>
-                    <Ionicons name={editingLessonId ? "save" : "add-circle"} size={24} color="#fff" />
-                    <Text style={styles.modalAddButtonText}>
-                      {editingLessonId ? 'Update Lesson' : 
-                      sectionType === 'quiz' ? 'Add Question' : 'Add Lesson'}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.modalCancelButton}
-                onPress={resetLessonForm}
-                disabled={isLoading}
-              >
-                <Text style={styles.modalCancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
       </Modal>
     </SafeAreaView>
   );
-};
-
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
-  keyboardView: {
+  centerContent: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#6c757d',
   },
   scrollView: {
     flex: 1,
@@ -956,204 +569,206 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
   },
-  headerTitle: {
+  title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
+    flex: 1,
+    textAlign: 'center',
   },
-  form: {
+  addSectionBtn: {
+    backgroundColor: '#2E86AB',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    flex: 1,
     padding: 20,
   },
-  inputGroup: {
-    marginBottom: 20,
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
     color: '#333',
-    marginBottom: 8,
+    marginTop: 20,
   },
-  input: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#dee2e6',
+  emptyText: {
     fontSize: 16,
+    color: '#6c757d',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 24,
+    paddingHorizontal: 20,
   },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  typeButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  typeButton: {
+  emptyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    backgroundColor: '#2E86AB',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#dee2e6',
-    backgroundColor: '#fff',
-    minWidth: 100,
   },
-  typeButtonActive: {
-    backgroundColor: '#007bff',
-    borderColor: '#007bff',
-  },
-  typeButtonText: {
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  typeButtonTextActive: {
+  emptyBtnText: {
     color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+    marginLeft: 8,
   },
-  disabledText: {
-    color: '#999',
+  totalSections: {
+    fontSize: 16,
+    color: '#6c757d',
+    marginBottom: 15,
+  },
+  sectionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginLeft: 8,
+    flex: 1,
+  },
+  lessonsCount: {
+    fontSize: 14,
+    color: '#6c757d',
+    marginLeft: 8,
+  },
+  sectionActions: {
+    flexDirection: 'row',
+  },
+  sectionActionBtn: {
+    padding: 8,
+    marginLeft: 4,
+  },
+  expandedContent: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e9ecef',
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: '#6c757d',
+    marginBottom: 16,
+    lineHeight: 20,
   },
   lessonsContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
     borderRadius: 8,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#dee2e6',
+    padding: 12,
   },
   lessonsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   lessonsTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
   },
   addLessonBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#28a745',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   addLessonText: {
-    color: '#007bff',
+    color: '#fff',
+    fontSize: 12,
     fontWeight: '600',
     marginLeft: 4,
   },
   lessonItem: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 12,
-    backgroundColor: '#f8f9fa',
+    padding: 10,
+    backgroundColor: '#fff',
     borderRadius: 6,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
   },
   lessonInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  lessonHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
-    flexWrap: 'wrap',
+    flex: 1,
+  },
+  lessonDetails: {
+    marginLeft: 10,
+    flex: 1,
   },
   lessonTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    marginLeft: 8,
-    marginRight: 8,
   },
-  savedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#e8f5e9',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  savedBadgeText: {
-    fontSize: 10,
-    color: '#28a745',
-    marginLeft: 2,
-  },
-  lessonContent: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
-  },
-  lessonUrl: {
+  lessonMeta: {
     fontSize: 12,
-    color: '#007bff',
-    marginTop: 2,
-  },
-  quizInfo: {
-    fontSize: 12,
-    color: '#ffc107',
-    marginTop: 2,
-  },
-  lessonDuration: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-  },
-  lessonOrder: {
-    fontSize: 11,
     color: '#6c757d',
     marginTop: 2,
+  },
+  lessonActions: {
+    flexDirection: 'row',
+  },
+  lessonActionBtn: {
+    padding: 6,
+    marginLeft: 4,
   },
   emptyLessons: {
     alignItems: 'center',
-    padding: 32,
+    paddingVertical: 20,
   },
   emptyLessonsText: {
-    fontSize: 16,
-    color: '#495057',
-    textAlign: 'center',
-    marginTop: 12,
-  },
-  emptyLessonsSubText: {
     fontSize: 14,
-    color: '#adb5bd',
-    textAlign: 'center',
-    marginTop: 4,
+    color: '#6c757d',
+    marginTop: 8,
+    marginBottom: 12,
   },
-  createBtn: {
+  emptyLessonsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#28a745',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 40,
+    backgroundColor: '#2E86AB',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
   },
-  disabledBtn: {
-    backgroundColor: '#adb5bd',
-  },
-  createBtnText: {
+  emptyLessonsBtnText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#6c757d',
-  },
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -1174,23 +789,23 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e9ecef',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
   },
-  modalScroll: {
+  modalBody: {
     padding: 20,
   },
-  modalInputGroup: {
+  inputGroup: {
     marginBottom: 20,
   },
-  modalLabel: {
+  label: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
     marginBottom: 8,
   },
-  modalInput: {
+  input: {
     backgroundColor: '#f8f9fa',
     padding: 12,
     borderRadius: 8,
@@ -1198,84 +813,45 @@ const styles = StyleSheet.create({
     borderColor: '#dee2e6',
     fontSize: 16,
   },
-  modalTextArea: {
+  textArea: {
     minHeight: 80,
     textAlignVertical: 'top',
   },
-  quizOptionRow: {
+  modalActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    marginTop: 20,
   },
-  quizOptionLabel: {
-    width: 70,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  quizOptionInput: {
+  cancelBtn: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
-    padding: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#dee2e6',
-    fontSize: 14,
-  },
-  correctAnswerButtons: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  correctAnswerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#dee2e6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  correctAnswerButtonActive: {
-    backgroundColor: '#28a745',
-    borderColor: '#28a745',
-  },
-  correctAnswerButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  correctAnswerButtonTextActive: {
-    color: '#fff',
-  },
-  modalAddButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#28a745',
     padding: 16,
+    backgroundColor: '#6c757d',
     borderRadius: 8,
-    marginTop: 10,
+    marginRight: 10,
+    alignItems: 'center',
   },
-  modalAddButtonText: {
+  cancelBtnText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
+  },
+  saveBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: '#28a745',
+    borderRadius: 8,
     marginLeft: 10,
   },
-  modalCancelButton: {
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 8,
-    marginTop: 10,
-    marginBottom: 20,
-    backgroundColor: '#f8f9fa',
+  disabledBtn: {
+    backgroundColor: '#adb5bd',
   },
-  modalCancelButtonText: {
-    color: '#dc3545',
+  saveBtnText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+    marginLeft: 8,
   },
 });
-
-export default AddSectionScreen;
