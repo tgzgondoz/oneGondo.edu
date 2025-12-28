@@ -42,8 +42,26 @@ export default function CoreDashboardScreen({ navigation }) {
       return;
     }
 
-    // Set basic user info
-    setUserName(user.displayName || user.email?.split('@')[0] || 'Student');
+    // Set basic user info with better name formatting
+    if (user.displayName) {
+      // Capitalize each part of the name
+      const formattedName = user.displayName
+        .split(' ')
+        .map(name => name.charAt(0).toUpperCase() + name.slice(1).toLowerCase())
+        .join(' ');
+      setUserName(formattedName);
+    } else if (user.email) {
+      // Extract name from email and format it nicely
+      const nameFromEmail = user.email.split('@')[0];
+      const formattedName = nameFromEmail
+        .split(/[._-]/)
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(' ');
+      setUserName(formattedName);
+    } else {
+      setUserName('Student');
+    }
+    
     setUserEmail(user.email || '');
     
     // Load enrolled courses
@@ -63,7 +81,7 @@ export default function CoreDashboardScreen({ navigation }) {
         // Load course details for each enrolled course
         Promise.all(
           courseIds.map(courseId => 
-            getCourseDetails(courseId, enrolledData[courseId])
+            getCourseDetails(courseId, enrolledData[ourseId])
           )
         ).then(coursesData => {
           const validCourses = coursesData.filter(course => course !== null);
@@ -115,7 +133,6 @@ export default function CoreDashboardScreen({ navigation }) {
           progress: enrollment.progress || 0,
           category: courseData.category || 'General',
           instructor: courseData.instructor || 'Unknown Instructor',
-          color: '#000'
         };
       }
       return null;
@@ -189,9 +206,24 @@ export default function CoreDashboardScreen({ navigation }) {
 
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
-          <Text style={styles.greeting}>Welcome back,</Text>
-          <Text style={styles.userName}>{userName}</Text>
+          <Text style={styles.greetingText}>
+            Welcome back,{' '}
+            <Text style={styles.highlightedName}>{userName}</Text>
+          </Text>
           <Text style={styles.userEmail}>{userEmail}</Text>
+          
+          {/* Today's date */}
+          <View style={styles.dateContainer}>
+            <Ionicons name="calendar-outline" size={14} color="#666" />
+            <Text style={styles.dateText}>
+              {new Date().toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </Text>
+          </View>
         </View>
 
         {/* Stats Overview */}
@@ -199,7 +231,9 @@ export default function CoreDashboardScreen({ navigation }) {
           <Text style={styles.sectionTitle}>Learning Overview</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
-              <Ionicons name="book-outline" size={24} color="#000" />
+              <View style={styles.statIconContainer}>
+                <Ionicons name="book-outline" size={22} color="#000" />
+              </View>
               <Text style={styles.statNumber}>
                 {stats.enrolled}
               </Text>
@@ -207,7 +241,9 @@ export default function CoreDashboardScreen({ navigation }) {
             </View>
             
             <View style={styles.statCard}>
-              <Ionicons name="play-circle-outline" size={24} color="#000" />
+              <View style={styles.statIconContainer}>
+                <Ionicons name="play-circle-outline" size={22} color="#000" />
+              </View>
               <Text style={styles.statNumber}>
                 {stats.inProgress}
               </Text>
@@ -215,7 +251,9 @@ export default function CoreDashboardScreen({ navigation }) {
             </View>
             
             <View style={styles.statCard}>
-              <Ionicons name="checkmark-circle-outline" size={24} color="#000" />
+              <View style={styles.statIconContainer}>
+                <Ionicons name="checkmark-circle-outline" size={22} color="#000" />
+              </View>
               <Text style={styles.statNumber}>
                 {stats.completed}
               </Text>
@@ -239,7 +277,9 @@ export default function CoreDashboardScreen({ navigation }) {
           
           {courses.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="book-outline" size={48} color="#999" />
+              <View style={styles.emptyStateIcon}>
+                <Ionicons name="book-outline" size={48} color="#999" />
+              </View>
               <Text style={styles.emptyStateTitle}>No courses yet</Text>
               <Text style={styles.emptyStateText}>
                 Enroll in courses to start learning
@@ -273,16 +313,19 @@ export default function CoreDashboardScreen({ navigation }) {
                   <Text style={styles.courseInstructor} numberOfLines={1}>
                     {course.instructor}
                   </Text>
-                  <View style={styles.progressRow}>
-                    <View style={styles.progressBar}>
-                      <View 
-                        style={[
-                          styles.progressFill, 
-                          { 
-                            width: `${course.progress}%`,
-                          }
-                        ]} 
-                      />
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressRow}>
+                      <View style={styles.progressBar}>
+                        <View 
+                          style={[
+                            styles.progressFill, 
+                            { 
+                              width: `${course.progress}%`,
+                            }
+                          ]} 
+                        />
+                      </View>
+                      <Text style={styles.progressPercentage}>{course.progress}%</Text>
                     </View>
                     <Text style={styles.progressText}>
                       {getProgressText(course.progress)}
@@ -290,12 +333,13 @@ export default function CoreDashboardScreen({ navigation }) {
                   </View>
                 </View>
                 
-                <Ionicons 
-                  name="chevron-forward" 
-                  size={20} 
-                  color="#999" 
-                  style={styles.chevron}
-                />
+                <View style={styles.courseAction}>
+                  <Ionicons 
+                    name="chevron-forward" 
+                    size={20} 
+                    color="#999" 
+                  />
+                </View>
               </TouchableOpacity>
             ))
           )}
@@ -374,20 +418,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
   },
-  greeting: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
+  greetingText: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 6,
   },
-  userName: {
-    fontSize: 28,
-    fontWeight: 'bold',
+  highlightedName: {
     color: '#000',
-    marginBottom: 4,
+    fontWeight: '700',
   },
   userEmail: {
     fontSize: 14,
     color: '#666',
+    marginBottom: 12,
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  dateText: {
+    fontSize: 13,
+    color: '#666',
+    marginLeft: 6,
+    fontWeight: '500',
   },
   statsSection: {
     paddingHorizontal: 20,
@@ -408,14 +467,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
   },
   statNumber: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#000',
-    marginVertical: 8,
+    marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
@@ -444,11 +517,16 @@ const styles = StyleSheet.create({
   },
   courseCard: {
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   courseIcon: {
     width: 50,
@@ -471,11 +549,16 @@ const styles = StyleSheet.create({
   courseInstructor: {
     fontSize: 13,
     color: '#666',
-    marginBottom: 8,
+    marginBottom: 10,
+    fontWeight: '500',
+  },
+  progressContainer: {
+    flex: 1,
   },
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4,
   },
   progressBar: {
     flex: 1,
@@ -490,25 +573,43 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     borderRadius: 2,
   },
+  progressPercentage: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000',
+    minWidth: 40,
+  },
   progressText: {
     fontSize: 12,
     color: '#666',
-    minWidth: 80,
   },
-  chevron: {
-    marginLeft: 10,
+  courseAction: {
+    paddingLeft: 10,
   },
   emptyState: {
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 30,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  emptyStateIcon: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 15,
   },
   emptyStateTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
-    marginTop: 15,
     marginBottom: 5,
   },
   emptyStateText: {
@@ -521,7 +622,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   enrollButtonText: {
     color: '#fff',
