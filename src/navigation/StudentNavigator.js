@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 
-// Import screens - CORRECTED PATHS based on file structure
+// Import screens
 import DashboardScreen from '../screens/student/DashboardScreen';
 import ProfileScreen from '../screens/student/ProfileScreen';
 import CoursesScreen from '../screens/student/CoursesScreen';
@@ -22,63 +22,36 @@ function CoursesStack() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: {
-          backgroundColor: '#fff',
-        },
-        headerTintColor: '#333',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
+        headerShown: false,
       }}
     >
       <Stack.Screen 
         name="CoursesMain" 
         component={CoursesScreen} 
-        options={{ 
-          headerShown: false
-        }}
       />
       <Stack.Screen 
         name="CourseDetail" 
         component={CourseDetailScreen} 
-        options={({ route }) => ({ 
-          title: route.params?.courseTitle || 'Course Details',
-        })}
       />
       <Stack.Screen 
         name="CourseMaterials" 
         component={CourseMaterialsScreen} 
-        options={{ 
-          title: 'Course Materials',
-        }}
       />
       <Stack.Screen 
         name="QuizAttempts" 
         component={QuizAttemptsScreen} 
-        options={{ 
-          title: 'Quizzes & Tests',
-        }}
       />
       <Stack.Screen 
         name="TakeQuiz" 
         component={TakeQuizScreen} 
-        options={({ route }) => ({ 
-          title: route.params?.quizTitle || 'Take Quiz',
-        })}
       />
       <Stack.Screen 
         name="QuizResults" 
         component={QuizResultsScreen} 
-        options={{ 
-          title: 'Quiz Results',
-        }}
       />
       <Stack.Screen 
         name="VideoPlayer" 
         component={VideoPlayerScreen} 
-        options={({ route }) => ({ 
-          title: route.params?.title || 'Video Player',
-        })}
       />
     </Stack.Navigator>
   );
@@ -102,13 +75,13 @@ export default function StudentNavigator() {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#2E86AB',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: '#000',
+        tabBarInactiveTintColor: '#666',
         headerShown: false,
         tabBarStyle: {
           backgroundColor: 'white',
           borderTopWidth: 1,
-          borderTopColor: '#e5e5e5',
+          borderTopColor: '#e0e0e0',
           height: 60,
           paddingBottom: 5,
           paddingTop: 5,

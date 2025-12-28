@@ -6,11 +6,11 @@ import {
   SafeAreaView,
   Alert,
   StyleSheet
-} from 'react-native'; // Ensure all imports are present
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../components/AuthContext';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
@@ -29,7 +29,7 @@ export default function ProfileScreen() {
   };
 
   const menuItems = [
-    { icon: 'person', label: 'Edit Profile' },
+    { icon: 'person', label: 'Account' },
     { icon: 'settings', label: 'Settings' },
     { icon: 'help-circle', label: 'Help & Support' },
     { icon: 'shield-checkmark', label: 'Privacy Policy' },
@@ -39,13 +39,28 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{user?.avatar || 'JS'}</Text>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Profile</Text>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="close" size={24} color="#000" />
+          </TouchableOpacity>
         </View>
-        <Text style={styles.name}>{user?.name || 'John Student'}</Text>
-        <Text style={styles.email}>{user?.email || 'john.student@onegondo.edu'}</Text>
+      </View>
+
+      {/* User Info */}
+      <View style={styles.userSection}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+          </Text>
+        </View>
+        <Text style={styles.name}>{user?.name || 'Student'}</Text>
+        <Text style={styles.email}>{user?.email || 'student@onegondo.edu'}</Text>
         <View style={styles.roleBadge}>
-          <Text style={styles.roleText}>Student</Text>
+          <Text style={styles.roleText}>Student Account</Text>
         </View>
       </View>
 
@@ -59,11 +74,17 @@ export default function ProfileScreen() {
               index !== menuItems.length - 1 && styles.menuItemBorder
             ]}
           >
-            <Ionicons name={item.icon} size={24} color="#6c757d" />
+            <Ionicons name={item.icon} size={20} color="#666" />
             <Text style={styles.menuText}>{item.label}</Text>
-            <Ionicons name="chevron-forward" size={20} color="#6c757d" />
+            <Ionicons name="chevron-forward" size={16} color="#999" />
           </TouchableOpacity>
         ))}
+      </View>
+
+      {/* Footer */}
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>oneGondo.edu</Text>
+        <Text style={styles.footerSubtext}>Version 2.1.4</Text>
       </View>
 
       {/* Logout Button */}
@@ -71,7 +92,7 @@ export default function ProfileScreen() {
         style={styles.logoutButton}
         onPress={handleLogout}
       >
-        <Ionicons name="log-out" size={24} color="#dc3545" />
+        <Ionicons name="log-out-outline" size={20} color="#000" />
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
     </SafeAreaView>
@@ -81,88 +102,122 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f5f5f5',
   },
   header: {
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  backButton: {
+    padding: 8,
+  },
+  userSection: {
     alignItems: 'center',
     padding: 30,
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 8,
   },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#2E86AB',
+    backgroundColor: '#f0f0f0',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 15,
   },
   avatarText: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#000',
   },
   name: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
   },
   email: {
-    fontSize: 16,
-    color: '#6c757d',
+    fontSize: 14,
+    color: '#666',
     marginBottom: 10,
   },
   roleBadge: {
-    backgroundColor: '#28a745',
+    backgroundColor: '#f0f0f0',
     paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
   },
   roleText: {
-    color: '#fff',
+    color: '#666',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   menu: {
     backgroundColor: '#fff',
     marginTop: 20,
     marginHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
+    padding: 16,
   },
   menuItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomColor: '#e0e0e0',
   },
   menuText: {
     flex: 1,
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 15,
+    fontSize: 14,
+    color: '#000',
+    marginLeft: 12,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     margin: 20,
-    padding: 15,
+    marginTop: 30,
+    padding: 16,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#dc3545',
+    borderColor: '#e0e0e0',
   },
   logoutText: {
-    fontSize: 16,
-    color: '#dc3545',
+    fontSize: 14,
+    color: '#000',
     fontWeight: '600',
-    marginLeft: 10,
+    marginLeft: 8,
+  },
+  footer: {
+    padding: 20,
+    alignItems: 'center',
+    marginTop: 'auto',
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  footerSubtext: {
+    fontSize: 12,
+    color: '#999',
   },
 });

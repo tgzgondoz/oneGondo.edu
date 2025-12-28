@@ -8,7 +8,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getDatabase, ref, onValue } from 'firebase/database';
@@ -116,7 +115,7 @@ export default function CoreDashboardScreen({ navigation }) {
           progress: enrollment.progress || 0,
           category: courseData.category || 'General',
           instructor: courseData.instructor || 'Unknown Instructor',
-          color: getCourseColor(courseData.category)
+          color: '#000'
         };
       }
       return null;
@@ -124,30 +123,6 @@ export default function CoreDashboardScreen({ navigation }) {
       console.error('Error loading course:', error);
       return null;
     }
-  };
-
-  const getCourseColor = (category) => {
-    const colors = {
-      'Math': '#FF6B6B',
-      'Science': '#4ECDC4',
-      'Programming': '#45B7D1',
-      'English': '#96CEB4',
-      'History': '#FFEAA7',
-      'Art': '#DDA0DD',
-      'Business': '#98D8C8',
-      'Music': '#F7DC6F',
-      'default': '#2E86AB'
-    };
-    
-    if (!category) return colors.default;
-    
-    for (const [key, color] of Object.entries(colors)) {
-      if (category.toLowerCase().includes(key.toLowerCase())) {
-        return color;
-      }
-    }
-    
-    return colors.default;
   };
 
   const handleRefresh = () => {
@@ -178,7 +153,7 @@ export default function CoreDashboardScreen({ navigation }) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2E86AB" />
+          <ActivityIndicator color="#000" />
           <Text style={styles.loadingText}>Loading your dashboard...</Text>
         </View>
       </SafeAreaView>
@@ -193,55 +168,55 @@ export default function CoreDashboardScreen({ navigation }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={['#2E86AB']}
+            colors={['#000']}
           />
         }
       >
-        {/* Header with User Info */}
+        {/* Header with Logout */}
         <View style={styles.header}>
-          <View style={styles.userInfo}>
-            <View style={styles.avatarContainer}>
-              <Text style={styles.avatarText}>
-                {userName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-            <View style={styles.userDetails}>
-              <Text style={styles.greeting}>Welcome back</Text>
-              <Text style={styles.userName}>{userName}</Text>
-              <Text style={styles.userEmail}>{userEmail}</Text>
+          <View style={styles.headerContent}>
+            <View style={styles.logoContainer}>
+              <Text style={styles.logoText}>Dashboard</Text>
             </View>
             <TouchableOpacity 
               style={styles.logoutButton}
               onPress={handleLogout}
             >
-              <Ionicons name="log-out-outline" size={22} color="#6c757d" />
+              <Ionicons name="log-out-outline" size={22} color="#666" />
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <Text style={styles.greeting}>Welcome back,</Text>
+          <Text style={styles.userName}>{userName}</Text>
+          <Text style={styles.userEmail}>{userEmail}</Text>
         </View>
 
         {/* Stats Overview */}
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>Learning Overview</Text>
           <View style={styles.statsGrid}>
-            <View style={[styles.statCard, { backgroundColor: '#E3F2FD' }]}>
-              <Ionicons name="book-outline" size={28} color="#1976D2" />
-              <Text style={[styles.statNumber, { color: '#1976D2' }]}>
+            <View style={styles.statCard}>
+              <Ionicons name="book-outline" size={24} color="#000" />
+              <Text style={styles.statNumber}>
                 {stats.enrolled}
               </Text>
               <Text style={styles.statLabel}>Enrolled</Text>
             </View>
             
-            <View style={[styles.statCard, { backgroundColor: '#E8F5E9' }]}>
-              <Ionicons name="play-circle-outline" size={28} color="#388E3C" />
-              <Text style={[styles.statNumber, { color: '#388E3C' }]}>
+            <View style={styles.statCard}>
+              <Ionicons name="play-circle-outline" size={24} color="#000" />
+              <Text style={styles.statNumber}>
                 {stats.inProgress}
               </Text>
               <Text style={styles.statLabel}>In Progress</Text>
             </View>
             
-            <View style={[styles.statCard, { backgroundColor: '#FFF3E0' }]}>
-              <Ionicons name="checkmark-circle-outline" size={28} color="#F57C00" />
-              <Text style={[styles.statNumber, { color: '#F57C00' }]}>
+            <View style={styles.statCard}>
+              <Ionicons name="checkmark-circle-outline" size={24} color="#000" />
+              <Text style={styles.statNumber}>
                 {stats.completed}
               </Text>
               <Text style={styles.statLabel}>Completed</Text>
@@ -258,13 +233,13 @@ export default function CoreDashboardScreen({ navigation }) {
               style={styles.seeAllButton}
             >
               <Text style={styles.seeAllText}>Browse All</Text>
-              <Ionicons name="chevron-forward" size={16} color="#2E86AB" />
+              <Ionicons name="chevron-forward" size={16} color="#666" />
             </TouchableOpacity>
           </View>
           
           {courses.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="book-outline" size={60} color="#ddd" />
+              <Ionicons name="book-outline" size={48} color="#999" />
               <Text style={styles.emptyStateTitle}>No courses yet</Text>
               <Text style={styles.emptyStateText}>
                 Enroll in courses to start learning
@@ -283,11 +258,11 @@ export default function CoreDashboardScreen({ navigation }) {
                 style={styles.courseCard}
                 onPress={() => handleCoursePress(course)}
               >
-                <View style={[styles.courseIcon, { backgroundColor: course.color + '20' }]}>
+                <View style={styles.courseIcon}>
                   <Ionicons 
                     name={getCourseIcon(course.category)} 
                     size={24} 
-                    color={course.color} 
+                    color="#000" 
                   />
                 </View>
                 
@@ -305,7 +280,6 @@ export default function CoreDashboardScreen({ navigation }) {
                           styles.progressFill, 
                           { 
                             width: `${course.progress}%`,
-                            backgroundColor: course.color
                           }
                         ]} 
                       />
@@ -319,7 +293,7 @@ export default function CoreDashboardScreen({ navigation }) {
                 <Ionicons 
                   name="chevron-forward" 
                   size={20} 
-                  color="#ccc" 
+                  color="#999" 
                   style={styles.chevron}
                 />
               </TouchableOpacity>
@@ -327,7 +301,11 @@ export default function CoreDashboardScreen({ navigation }) {
           )}
         </View>
 
-        {/* Removed Quick Actions Section */}
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Learning Platform</Text>
+          <Text style={styles.footerSubtext}>Version 2.1.4 • © 2024</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -355,112 +333,104 @@ function getCourseIcon(category) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f5f5f5',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f5f5f5',
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 16,
-    color: '#6c757d',
+    fontSize: 14,
+    color: '#666',
   },
   scrollView: {
     flex: 1,
   },
   header: {
-    backgroundColor: '#fff',
+    paddingTop: 20,
     paddingHorizontal: 20,
-    paddingVertical: 25,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    paddingBottom: 10,
   },
-  userInfo: {
+  headerContent: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  avatarContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#2E86AB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 15,
-  },
-  avatarText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  userDetails: {
+  logoContainer: {
     flex: 1,
   },
-  greeting: {
-    fontSize: 14,
-    color: '#6c757d',
-    marginBottom: 2,
-  },
-  userName: {
-    fontSize: 22,
+  logoText: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 2,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: '#6c757d',
+    color: '#000',
   },
   logoutButton: {
     padding: 8,
   },
+  welcomeSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+  greeting: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  userName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: '#666',
+  },
   statsSection: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 16,
   },
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 10,
   },
   statCard: {
     flex: 1,
-    padding: 15,
-    borderRadius: 12,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 8,
     alignItems: 'center',
-    marginHorizontal: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   statNumber: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#000',
     marginVertical: 8,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6c757d',
+    color: '#666',
     textAlign: 'center',
   },
   coursesSection: {
     paddingHorizontal: 20,
     marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   seeAllButton: {
     flexDirection: 'row',
@@ -468,22 +438,17 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: '#2E86AB',
-    fontWeight: '600',
+    color: '#666',
+    fontWeight: '500',
     marginRight: 4,
   },
   courseCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
+    borderRadius: 8,
+    padding: 16,
     marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   courseIcon: {
     width: 50,
@@ -492,6 +457,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 15,
+    backgroundColor: '#f0f0f0',
   },
   courseInfo: {
     flex: 1,
@@ -499,12 +465,12 @@ const styles = StyleSheet.create({
   courseTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#000',
     marginBottom: 4,
   },
   courseInstructor: {
     fontSize: 13,
-    color: '#6c757d',
+    color: '#666',
     marginBottom: 8,
   },
   progressRow: {
@@ -513,19 +479,20 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     flex: 1,
-    height: 6,
-    backgroundColor: '#e9ecef',
-    borderRadius: 3,
+    height: 4,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 2,
     marginRight: 10,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    backgroundColor: '#000',
+    borderRadius: 2,
   },
   progressText: {
     fontSize: 12,
-    color: '#6c757d',
+    color: '#666',
     minWidth: 80,
   },
   chevron: {
@@ -533,37 +500,47 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 30,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   emptyStateTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#000',
     marginTop: 15,
     marginBottom: 5,
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#6c757d',
+    color: '#666',
     textAlign: 'center',
     marginBottom: 20,
   },
   enrollButton: {
-    backgroundColor: '#2E86AB',
-    paddingHorizontal: 25,
+    backgroundColor: '#000',
+    paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   enrollButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  footer: {
+    padding: 20,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  footerSubtext: {
+    fontSize: 12,
+    color: '#999',
   },
 });

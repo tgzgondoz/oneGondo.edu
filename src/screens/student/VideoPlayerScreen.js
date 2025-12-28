@@ -63,8 +63,11 @@ URL: ${videoUrl}`,
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {title || 'Video Player'}
@@ -73,7 +76,7 @@ URL: ${videoUrl}`,
       </View>
 
       <View style={styles.content}>
-        <Ionicons name="videocam-outline" size={80} color="#2E86AB" />
+        <Ionicons name="videocam-outline" size={64} color="#000" />
         
         <Text style={styles.title}>
           {title || 'Video Content'}
@@ -81,29 +84,13 @@ URL: ${videoUrl}`,
         
         <View style={styles.videoInfo}>
           <Text style={styles.videoSource}>
-            Source: {getVideoSourceInfo()}
+            {getVideoSourceInfo()}
           </Text>
           {videoUrl && (
             <Text style={styles.videoUrl} numberOfLines={2}>
               {videoUrl}
             </Text>
           )}
-        </View>
-        
-        <View style={styles.instructions}>
-          <Text style={styles.instructionsTitle}>How to watch:</Text>
-          <View style={styles.instructionItem}>
-            <Ionicons name="checkmark-circle" size={16} color="#28a745" />
-            <Text style={styles.instructionText}>Tap "Play Video" below</Text>
-          </View>
-          <View style={styles.instructionItem}>
-            <Ionicons name="checkmark-circle" size={16} color="#28a745" />
-            <Text style={styles.instructionText}>Video will open in your device's video player</Text>
-          </View>
-          <View style={styles.instructionItem}>
-            <Ionicons name="checkmark-circle" size={16} color="#28a745" />
-            <Text style={styles.instructionText}>Use your device's controls to play/pause</Text>
-          </View>
         </View>
         
         {videoUrl ? (
@@ -123,16 +110,16 @@ URL: ${videoUrl}`,
           </TouchableOpacity>
         ) : (
           <View style={styles.noVideoContainer}>
-            <Ionicons name="warning" size={24} color="#dc3545" />
+            <Ionicons name="warning" size={24} color="#666" />
             <Text style={styles.noVideoText}>No video URL available</Text>
           </View>
         )}
         
         <TouchableOpacity
-          style={styles.backButton}
+          style={styles.backButton2}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>Back to Course Materials</Text>
+          <Text style={styles.backButtonText}>Back to Materials</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -142,21 +129,22 @@ URL: ${videoUrl}`,
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#f8f9fa' 
+    backgroundColor: '#f5f5f5' 
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  backButton: {
+    padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '600',
+    color: '#000',
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 10,
@@ -168,16 +156,16 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#000',
     marginTop: 20,
     marginBottom: 20,
     textAlign: 'center',
   },
   videoInfo: {
     backgroundColor: '#fff',
-    padding: 15,
+    padding: 16,
     borderRadius: 8,
     marginBottom: 20,
     width: '100%',
@@ -185,79 +173,55 @@ const styles = StyleSheet.create({
   },
   videoSource: {
     fontSize: 16,
-    color: '#2E86AB',
+    color: '#000',
     fontWeight: '600',
     marginBottom: 5,
   },
   videoUrl: {
     fontSize: 12,
-    color: '#6c757d',
+    color: '#666',
     textAlign: 'center',
     marginTop: 5,
-  },
-  instructions: {
-    backgroundColor: '#e7f3ff',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 20,
-    width: '100%',
-  },
-  instructionsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2E86AB',
-    marginBottom: 10,
-  },
-  instructionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  instructionText: {
-    fontSize: 14,
-    color: '#495057',
-    marginLeft: 8,
-    flex: 1,
   },
   playButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2E86AB',
+    backgroundColor: '#000',
     paddingHorizontal: 30,
-    paddingVertical: 15,
+    paddingVertical: 16,
     borderRadius: 8,
-    marginBottom: 15,
+    marginBottom: 16,
     width: '100%',
   },
   playButtonText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   noVideoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff3cd',
-    padding: 15,
+    backgroundColor: '#fff',
+    padding: 16,
     borderRadius: 8,
-    marginBottom: 15,
+    marginBottom: 16,
     width: '100%',
     justifyContent: 'center',
   },
   noVideoText: {
-    color: '#856404',
+    color: '#666',
     fontSize: 16,
-    marginLeft: 10,
+    marginLeft: 8,
   },
-  backButton: {
-    padding: 15,
+  backButton2: {
+    padding: 16,
     width: '100%',
     alignItems: 'center',
   },
   backButtonText: {
-    color: '#6c757d',
-    fontSize: 16,
+    color: '#666',
+    fontSize: 14,
   },
 });

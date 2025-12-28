@@ -96,23 +96,13 @@ export default function CourseDetailScreen({ navigation, route }) {
     }
   };
 
-  const getSectionColor = (type) => {
-    switch (type) {
-      case 'video': return '#dc3545';
-      case 'quiz': return '#ffc107';
-      case 'test': return '#dc3545';
-      case 'document': return '#28a745';
-      default: return '#6c757d';
-    }
-  };
-
   // FIXED: Updated navigation to use existing screens
   const navigateToSection = (section) => {
     if (section.type === 'video' || section.type === 'document') {
-      // Navigate to Course Materials instead of SectionContent
+      // Navigate to Course Materials
       Alert.alert(
         'Start Learning',
-        `Navigate to "${section.title}" materials. All learning materials are available in the Course Materials section.`,
+        `Navigate to "${section.title}" materials.`,
         [
           {
             text: 'Go to Materials',
@@ -159,7 +149,7 @@ export default function CourseDetailScreen({ navigation, route }) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2E86AB" />
+          <ActivityIndicator color="#000" />
           <Text style={styles.loadingText}>Loading course...</Text>
         </View>
       </SafeAreaView>
@@ -170,7 +160,7 @@ export default function CourseDetailScreen({ navigation, route }) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Ionicons name="warning" size={64} color="#dc3545" />
+          <Ionicons name="warning" size={48} color="#666" />
           <Text style={styles.errorText}>Course not found</Text>
           <TouchableOpacity 
             style={styles.backButton}
@@ -192,8 +182,11 @@ export default function CourseDetailScreen({ navigation, route }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {course.title}
@@ -205,16 +198,13 @@ export default function CourseDetailScreen({ navigation, route }) {
         <View style={styles.content}>
           {/* Course Header */}
           <View style={styles.courseHeader}>
-            <View style={styles.courseIcon}>
-              <Ionicons name="book" size={32} color="#2E86AB" />
-            </View>
             <View style={styles.courseInfo}>
               <Text style={styles.courseTitle}>{course.title}</Text>
               <Text style={styles.courseInstructor}>
-                Instructor: {course.instructor || 'Unknown'}
+                {course.instructor || 'Unknown Instructor'}
               </Text>
               <Text style={styles.courseDuration}>
-                Duration: {course.duration || 'Self-paced'}
+                {course.duration || 'Self-paced'}
               </Text>
             </View>
           </View>
@@ -256,7 +246,7 @@ export default function CourseDetailScreen({ navigation, route }) {
             
             {sections.length === 0 ? (
               <View style={styles.emptySections}>
-                <Ionicons name="folder-open-outline" size={48} color="#adb5bd" />
+                <Ionicons name="folder-open-outline" size={48} color="#999" />
                 <Text style={styles.emptySectionsText}>
                   No sections available yet
                 </Text>
@@ -278,7 +268,7 @@ export default function CourseDetailScreen({ navigation, route }) {
                         <Ionicons 
                           name={getSectionIcon(section.type)} 
                           size={24} 
-                          color={getSectionColor(section.type)} 
+                          color="#000" 
                         />
                       </View>
                       <View style={styles.sectionInfo}>
@@ -333,58 +323,18 @@ export default function CourseDetailScreen({ navigation, route }) {
                             'help-circle' : 'play-circle'
                           } 
                           size={20} 
-                          color="#2E86AB" 
+                          color="#000" 
                         />
                         <Text style={styles.actionButtonText}>
                           {section.type === 'quiz' || section.type === 'test' ? 
-                           'Take Quiz' : 'Start Learning'}
+                           'Take Quiz' : 'Start'}
                         </Text>
                       </TouchableOpacity>
-
-                      {section.type !== 'quiz' && section.type !== 'test' && (
-                        <TouchableOpacity 
-                          style={[styles.actionButton, styles.materialsButton]}
-                          onPress={() => navigation.navigate('CourseMaterials', { 
-                            courseId,
-                            courseTitle: course.title
-                          })}
-                        >
-                          <Ionicons name="folder-open" size={20} color="#6c757d" />
-                          <Text style={[styles.actionButtonText, styles.materialsButtonText]}>
-                            Materials
-                          </Text>
-                        </TouchableOpacity>
-                      )}
                     </View>
                   </TouchableOpacity>
                 );
               })
             )}
-          </View>
-
-          {/* Quick Actions */}
-          <View style={styles.quickActions}>
-            <TouchableOpacity 
-              style={styles.quickAction}
-              onPress={() => navigation.navigate('CourseMaterials', { 
-                courseId,
-                courseTitle: course.title
-              })}
-            >
-              <Ionicons name="folder-open" size={24} color="#2E86AB" />
-              <Text style={styles.quickActionText}>All Materials</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickAction}
-              onPress={() => navigation.navigate('QuizAttempts', { 
-                courseId,
-                courseTitle: course.title
-              })}
-            >
-              <Ionicons name="help-circle" size={24} color="#2E86AB" />
-              <Text style={styles.quickActionText}>Quizzes</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -395,21 +345,22 @@ export default function CourseDetailScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  backButton: {
+    padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '600',
+    color: '#000',
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 10,
@@ -420,9 +371,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#6c757d',
+    marginTop: 12,
+    fontSize: 14,
+    color: '#666',
   },
   errorContainer: {
     flex: 1,
@@ -431,21 +382,10 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   errorText: {
-    fontSize: 18,
-    color: '#dc3545',
+    fontSize: 16,
+    color: '#000',
     marginTop: 16,
     marginBottom: 24,
-  },
-  backButton: {
-    backgroundColor: '#2E86AB',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
@@ -454,242 +394,182 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   courseHeader: {
-    flexDirection: 'row',
     backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  courseIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#f8f9fa',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 15,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   courseInfo: {
     flex: 1,
-    justifyContent: 'center',
   },
   courseTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#000',
     marginBottom: 4,
   },
   courseInstructor: {
     fontSize: 14,
-    color: '#6c757d',
+    color: '#666',
     marginBottom: 2,
   },
   courseDuration: {
     fontSize: 14,
-    color: '#2E86AB',
+    color: '#666',
   },
   progressSummary: {
     backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   progressTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 8,
   },
   progressBar: {
-    height: 8,
-    backgroundColor: '#e9ecef',
-    borderRadius: 4,
+    height: 4,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 2,
     marginBottom: 8,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#2E86AB',
-    borderRadius: 4,
+    backgroundColor: '#000',
+    borderRadius: 2,
   },
   progressStats: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   progressStat: {
-    fontSize: 14,
-    color: '#6c757d',
+    fontSize: 12,
+    color: '#666',
   },
   descriptionCard: {
     backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   descriptionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 8,
   },
   descriptionText: {
     fontSize: 14,
-    color: '#495057',
+    color: '#333',
     lineHeight: 20,
   },
   sectionsContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   sectionsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
+    color: '#000',
+    marginBottom: 12,
   },
   emptySections: {
     alignItems: 'center',
     padding: 40,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 8,
   },
   emptySectionsText: {
-    fontSize: 16,
-    color: '#6c757d',
+    fontSize: 14,
+    color: '#666',
     marginTop: 12,
   },
   sectionCard: {
     backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
   },
   sectionHeader: {
     flexDirection: 'row',
-    marginBottom: 15,
+    marginBottom: 12,
   },
   sectionIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#f8f9fa',
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 15,
+    marginRight: 12,
   },
   sectionInfo: {
     flex: 1,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '600',
+    color: '#000',
     marginBottom: 4,
   },
   sectionDescription: {
     fontSize: 14,
-    color: '#6c757d',
+    color: '#666',
     marginBottom: 4,
   },
   sectionMeta: {
     fontSize: 12,
-    color: '#2E86AB',
+    color: '#666',
   },
   sectionProgress: {
-    marginBottom: 15,
-    paddingTop: 15,
+    marginBottom: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#e9ecef',
+    borderTopColor: '#e0e0e0',
   },
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   miniProgressBar: {
     flex: 1,
     height: 4,
-    backgroundColor: '#e9ecef',
+    backgroundColor: '#e0e0e0',
     borderRadius: 2,
-    marginRight: 10,
+    marginRight: 8,
   },
   miniProgressFill: {
     height: '100%',
-    backgroundColor: '#2E86AB',
+    backgroundColor: '#000',
     borderRadius: 2,
   },
   progressText: {
     fontSize: 12,
-    color: '#6c757d',
-    fontWeight: '600',
+    color: '#666',
+    fontWeight: '500',
   },
   lessonsCount: {
     fontSize: 12,
-    color: '#6c757d',
+    color: '#666',
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 10,
   },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 10,
+    padding: 12,
     borderRadius: 6,
-    backgroundColor: '#e7f3ff',
+    backgroundColor: '#f0f0f0',
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2E86AB',
+    color: '#000',
     marginLeft: 6,
-  },
-  materialsButton: {
-    backgroundColor: '#f8f9fa',
-  },
-  materialsButtonText: {
-    color: '#6c757d',
-  },
-  quickActions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  quickAction: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  quickActionText: {
-    fontSize: 14,
-    color: '#2E86AB',
-    fontWeight: '600',
-    marginTop: 8,
   },
 });

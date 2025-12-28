@@ -87,7 +87,6 @@ export default function CourseMaterialsScreen({ navigation, route }) {
     }
   };
 
-  // FIXED: Handle undefined url parameter
   const getMaterialIcon = (type, url = '') => {
     switch (type) {
       case 'video': return 'videocam';
@@ -104,7 +103,6 @@ export default function CourseMaterialsScreen({ navigation, route }) {
     }
   };
 
-  // FIXED: Handle undefined or non-string url
   const getFileTypeFromUrl = (url = '') => {
     if (!url || typeof url !== 'string' || url.trim() === '') return 'unknown';
     try {
@@ -120,7 +118,6 @@ export default function CourseMaterialsScreen({ navigation, route }) {
     }
   };
 
-  // FIXED: Handle undefined url
   const getFileTypeName = (url = '') => {
     const type = getFileTypeFromUrl(url);
     switch (type) {
@@ -133,7 +130,6 @@ export default function CourseMaterialsScreen({ navigation, route }) {
     }
   };
 
-  // FIXED: Check if material.url exists
   const handleOpenMaterial = async (material) => {
     if (!material.url) {
       Alert.alert('Error', 'This material is not available or has no URL');
@@ -199,7 +195,7 @@ export default function CourseMaterialsScreen({ navigation, route }) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2E86AB" />
+          <ActivityIndicator color="#000" />
           <Text style={styles.loadingText}>Loading materials...</Text>
         </View>
       </SafeAreaView>
@@ -211,8 +207,11 @@ export default function CourseMaterialsScreen({ navigation, route }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {courseTitle || 'Course Materials'}
@@ -222,19 +221,17 @@ export default function CourseMaterialsScreen({ navigation, route }) {
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
+          {/* Summary */}
           <View style={styles.summaryCard}>
-            <Ionicons name="folder-open" size={32} color="#2E86AB" />
-            <View style={styles.summaryInfo}>
-              <Text style={styles.summaryTitle}>Course Materials</Text>
-              <Text style={styles.summaryText}>
-                {materials.length} {materials.length === 1 ? 'item' : 'items'} available
-              </Text>
-            </View>
+            <Text style={styles.summaryTitle}>Course Materials</Text>
+            <Text style={styles.summaryText}>
+              {materials.length} {materials.length === 1 ? 'item' : 'items'} available
+            </Text>
           </View>
 
           {materials.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="folder-open-outline" size={64} color="#adb5bd" />
+              <Ionicons name="folder-open-outline" size={48} color="#999" />
               <Text style={styles.emptyStateTitle}>No Materials Available</Text>
               <Text style={styles.emptyStateText}>
                 This course doesn't have any videos or documents yet.
@@ -244,7 +241,6 @@ export default function CourseMaterialsScreen({ navigation, route }) {
             Object.entries(groupedMaterials).map(([sectionId, section]) => (
               <View key={sectionId} style={styles.sectionContainer}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="folder" size={20} color="#6c757d" />
                   <Text style={styles.sectionTitle}>{section.title}</Text>
                 </View>
                 
@@ -255,11 +251,10 @@ export default function CourseMaterialsScreen({ navigation, route }) {
                     onPress={() => handleOpenMaterial(material)}
                   >
                     <View style={styles.materialIcon}>
-                      {/* FIXED: Pass material.url with default value */}
                       <Ionicons 
                         name={getMaterialIcon(material.type, material.url || '')} 
                         size={24} 
-                        color={material.type === 'video' ? '#dc3545' : '#17a2b8'} 
+                        color="#000" 
                       />
                     </View>
                     <View style={styles.materialInfo}>
@@ -269,30 +264,16 @@ export default function CourseMaterialsScreen({ navigation, route }) {
                       </Text>
                       {material.duration && (
                         <Text style={styles.materialDuration}>
-                          <Ionicons name="time-outline" size={12} />
-                          {` ${material.duration}`}
+                          {material.duration}
                         </Text>
                       )}
                     </View>
-                    <Ionicons name="open-outline" size={20} color="#6c757d" />
+                    <Ionicons name="open-outline" size={20} color="#666" />
                   </TouchableOpacity>
                 ))}
               </View>
             ))
           )}
-
-          <View style={styles.infoCard}>
-            <Ionicons name="information-circle" size={24} color="#2E86AB" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>About Course Materials</Text>
-              <Text style={styles.infoText}>
-                • Videos will open in YouTube app or video player
-                {'\n'}• Documents will open in your browser
-                {'\n'}• Make sure you have the required apps installed
-                {'\n'}• Download files for offline access if needed
-              </Text>
-            </View>
-          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -302,21 +283,22 @@ export default function CourseMaterialsScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  backButton: {
+    padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '600',
+    color: '#000',
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 10,
@@ -327,9 +309,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#6c757d',
+    marginTop: 12,
+    fontSize: 14,
+    color: '#666',
   },
   scrollView: {
     flex: 1,
@@ -338,69 +320,51 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   summaryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 8,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  summaryInfo: {
-    marginLeft: 15,
   },
   summaryTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#000',
+    marginBottom: 4,
   },
   summaryText: {
     fontSize: 14,
-    color: '#6c757d',
-    marginTop: 4,
+    color: '#666',
   },
   sectionContainer: {
     marginBottom: 20,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomColor: '#e0e0e0',
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#495057',
-    marginLeft: 8,
+    color: '#000',
   },
   materialItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    padding: 15,
+    padding: 16,
     borderRadius: 8,
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   materialIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 15,
+    marginRight: 12,
   },
   materialInfo: {
     flex: 1,
@@ -408,58 +372,35 @@ const styles = StyleSheet.create({
   materialTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 2,
+    color: '#000',
+    marginBottom: 4,
   },
   materialType: {
     fontSize: 12,
-    color: '#6c757d',
+    color: '#666',
     marginBottom: 2,
   },
   materialDuration: {
     fontSize: 12,
-    color: '#2E86AB',
+    color: '#666',
   },
   emptyState: {
     alignItems: 'center',
     padding: 40,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 20,
+    borderRadius: 8,
   },
   emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#495057',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
     marginTop: 16,
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#6c757d',
+    color: '#666',
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 20,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    backgroundColor: '#e7f3ff',
-    padding: 15,
-    borderRadius: 8,
-    marginTop: 20,
-  },
-  infoContent: {
-    flex: 1,
-    marginLeft: 15,
-  },
-  infoTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#2E86AB',
-    marginBottom: 4,
-  },
-  infoText: {
-    fontSize: 12,
-    color: '#495057',
-    lineHeight: 18,
   },
 });
