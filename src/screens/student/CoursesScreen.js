@@ -1,4 +1,4 @@
-import React, { useState, useEffect, } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,9 @@ export default function CoursesScreen({ navigation }) {
   const [showCourseDetails, setShowCourseDetails] = useState(false);
   const [userProgress, setUserProgress] = useState({});
   const [activeTab, setActiveTab] = useState('available');
+  const [hasSubscription, setHasSubscription] = useState(false);
+  const [subscriptionExpiry, setSubscriptionExpiry] = useState(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
 
   const db = getDatabase();
   const auth = getAuth();
@@ -33,6 +36,7 @@ export default function CoursesScreen({ navigation }) {
     if (userId) {
       loadCourses();
       loadEnrolledCourses();
+      checkUserSubscription();
     }
   }, [userId]);
 
@@ -86,6 +90,40 @@ export default function CoursesScreen({ navigation }) {
     }
   };
 
+  const checkUserSubscription = async () => {
+    if (!userId) return;
+    
+    try {
+      const subscriptionRef = ref(db, `users/${userId}/subscription`);
+      const snapshot = await get(subscriptionRef);
+      
+      if (snapshot.exists()) {
+        const subscriptionData = snapshot.val();
+        const now = Date.now();
+        const expiry = subscriptionData.expiryDate;
+        
+        if (expiry > now) {
+          setHasSubscription(true);
+          setSubscriptionExpiry(expiry);
+        } else {
+          setHasSubscription(false);
+          // Mark subscription as expired in database
+          await set(subscriptionRef, {
+            ...subscriptionData,
+            status: 'expired'
+          });
+        }
+      } else {
+        setHasSubscription(false);
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      setHasSubscription(false);
+    } finally {
+      setLoadingSubscription(false);
+    }
+  };
+
   const loadCourseProgress = async (courseId) => {
     if (!userId) return;
     
@@ -126,14 +164,46 @@ export default function CoursesScreen({ navigation }) {
   const onRefresh = () => {
     setRefreshing(true);
     loadCourses();
-    loadEnrolledCourses().finally(() => {
+    loadEnrolledCourses();
+    checkUserSubscription().finally(() => {
       setRefreshing(false);
     });
+  };
+
+  // FIXED: Navigation to Payment screen in ProfileStack
+  const navigateToPayment = () => {
+    try {
+      // Payment screen is in ProfileStack, so we need to navigate to Profile tab first
+      navigation.navigate('Profile', { screen: 'Payment' });
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback navigation method
+      Alert.alert('Navigation Error', 'Unable to open payment screen');
+    }
   };
 
   const enrollInCourse = async (course) => {
     if (!userId) {
       Alert.alert('Error', 'Please sign in to enroll');
+      return;
+    }
+    
+    // Check if user has active subscription
+    if (!hasSubscription) {
+      Alert.alert(
+        'Subscription Required',
+        'You need an active subscription to enroll in courses. Would you like to subscribe?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          },
+          {
+            text: 'Subscribe',
+            onPress: navigateToPayment
+          }
+        ]
+      );
       return;
     }
     
@@ -196,7 +266,6 @@ export default function CoursesScreen({ navigation }) {
     }
   };
 
-  // FIXED: Added null check for courseId
   const navigateToCourse = (courseId, courseTitle) => {
     if (!courseId) {
       Alert.alert('Error', 'Course information is missing');
@@ -263,6 +332,48 @@ export default function CoursesScreen({ navigation }) {
     return courses.filter(course => !isEnrolled(course.id));
   };
 
+  const renderSubscriptionInfo = () => {
+    if (!userId || hasSubscription || loadingSubscription) return null;
+    
+    return (
+      <View style={styles.subscriptionBanner}>
+        <View style={styles.subscriptionBannerContent}>
+          <Ionicons name="lock-closed" size={20} color="#000" />
+          <View style={styles.subscriptionBannerText}>
+            <Text style={styles.subscriptionBannerTitle}>
+              Subscription Required
+            </Text>
+            <Text style={styles.subscriptionBannerSubtitle}>
+              Subscribe to unlock all courses and features
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.subscribeButton}
+            onPress={navigateToPayment}
+          >
+            <Text style={styles.subscribeButtonText}>Subscribe Now</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  const renderSubscriptionStatus = () => {
+    if (!hasSubscription || !subscriptionExpiry) return null;
+    
+    const expiryDate = new Date(subscriptionExpiry);
+    const daysRemaining = Math.ceil((expiryDate - Date.now()) / (1000 * 60 * 60 * 24));
+    
+    return (
+      <View style={styles.subscriptionStatus}>
+        <Ionicons name="checkmark-circle" size={14} color="#000" />
+        <Text style={styles.subscriptionStatusText}>
+          Subscription active • {daysRemaining} days remaining
+        </Text>
+      </View>
+    );
+  };
+
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.container}>
@@ -289,6 +400,7 @@ export default function CoursesScreen({ navigation }) {
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>Courses</Text>
+            {renderSubscriptionStatus()}
             <Text style={styles.subtitle}>
               {activeTab === 'enrolled' 
                 ? 'Continue your learning journey' 
@@ -304,6 +416,8 @@ export default function CoursesScreen({ navigation }) {
             </TouchableOpacity>
           )}
         </View>
+
+        {renderSubscriptionInfo()}
 
         <View style={styles.tabContainer}>
           <TouchableOpacity
@@ -386,12 +500,20 @@ export default function CoursesScreen({ navigation }) {
                     </Text>
                   </View>
                   
+                  {/* FIXED: disabled prop with proper boolean conversion */}
                   <TouchableOpacity 
                     style={styles.enrollButton}
                     onPress={() => enrollInCourse(course)}
+                    disabled={!!userId && !hasSubscription}
                   >
-                    <Ionicons name="add-circle-outline" size={20} color="#fff" />
-                    <Text style={styles.enrollButtonText}>Enroll Now</Text>
+                    <Ionicons 
+                      name={hasSubscription ? "add-circle-outline" : "lock-closed"} 
+                      size={20} 
+                      color="#fff" 
+                    />
+                    <Text style={styles.enrollButtonText}>
+                      {hasSubscription ? 'Enroll Now' : 'Subscribe to Enroll'}
+                    </Text>
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))
@@ -400,8 +522,18 @@ export default function CoursesScreen({ navigation }) {
                 <Ionicons name="school-outline" size={48} color="#999" />
                 <Text style={styles.emptyStateTitle}>No Available Courses</Text>
                 <Text style={styles.emptyStateText}>
-                  All courses are currently enrolled or no courses available
+                  {hasSubscription 
+                    ? 'All courses are currently enrolled' 
+                    : 'Subscribe to view available courses'}
                 </Text>
+                {!hasSubscription && userId && (
+                  <TouchableOpacity 
+                    style={styles.browseButton}
+                    onPress={navigateToPayment}
+                  >
+                    <Text style={styles.browseButtonText}>View Subscription Plans</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )
           ) : (
@@ -471,13 +603,24 @@ export default function CoursesScreen({ navigation }) {
                 <Ionicons name="book-outline" size={48} color="#999" />
                 <Text style={styles.emptyStateTitle}>No Enrolled Courses</Text>
                 <Text style={styles.emptyStateText}>
-                  Enroll in available courses to start learning
+                  {hasSubscription 
+                    ? 'Enroll in available courses to start learning'
+                    : 'Subscribe to enroll in courses and start learning'}
                 </Text>
+                {/* FIXED: Simplified onPress handler */}
                 <TouchableOpacity 
                   style={styles.browseButton}
-                  onPress={() => setActiveTab('available')}
+                  onPress={() => {
+                    if (hasSubscription) {
+                      setActiveTab('available');
+                    } else {
+                      navigateToPayment();
+                    }
+                  }}
                 >
-                  <Text style={styles.browseButtonText}>Browse Courses</Text>
+                  <Text style={styles.browseButtonText}>
+                    {hasSubscription ? 'Browse Courses' : 'View Subscription Plans'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             )
@@ -510,6 +653,15 @@ export default function CoursesScreen({ navigation }) {
                       color="#000" 
                     />
                   </View>
+                  
+                  {!hasSubscription && userId && (
+                    <View style={styles.subscriptionRequiredAlert}>
+                      <Ionicons name="lock-closed" size={20} color="#fff" />
+                      <Text style={styles.subscriptionRequiredText}>
+                        Subscription required to enroll in this course
+                      </Text>
+                    </View>
+                  )}
                   
                   <View style={styles.modalInfoSection}>
                     <Text style={styles.modalLabel}>Instructor</Text>
@@ -555,20 +707,35 @@ export default function CoursesScreen({ navigation }) {
                     )}
                   </View>
                   
-                  <TouchableOpacity 
-                    style={styles.modalEnrollButton}
-                    onPress={() => enrollInCourse(selectedCourse)}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <>
-                        <Ionicons name="add-circle" size={24} color="#fff" />
-                        <Text style={styles.modalEnrollButtonText}>Enroll Now</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
+                  {hasSubscription ? (
+                    <TouchableOpacity 
+                      style={styles.modalEnrollButton}
+                      onPress={() => enrollInCourse(selectedCourse)}
+                      disabled={loading || (!!userId && !hasSubscription)}
+                    >
+                      {loading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <>
+                          <Ionicons name="add-circle" size={24} color="#fff" />
+                          <Text style={styles.modalEnrollButtonText}>Enroll Now</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity 
+                      style={styles.modalSubscribeButton}
+                      onPress={() => {
+                        setShowCourseDetails(false);
+                        navigateToPayment();
+                      }}
+                    >
+                      <Ionicons name="lock-open" size={24} color="#fff" />
+                      <Text style={styles.modalSubscribeButtonText}>
+                        {userId ? 'Subscribe to Enroll' : 'Sign In to Subscribe'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                   
                   <TouchableOpacity 
                     style={styles.modalCancelButton}
@@ -621,6 +788,56 @@ const styles = StyleSheet.create({
   },
   profileButton: {
     padding: 5,
+  },
+  subscriptionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  subscriptionStatusText: {
+    fontSize: 12,
+    color: '#28a745',
+    marginLeft: 4,
+  },
+  subscriptionBanner: {
+    backgroundColor: '#fff3cd',
+    marginHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ffeaa7',
+  },
+  subscriptionBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+  },
+  subscriptionBannerText: {
+    flex: 1,
+    marginLeft: 10,
+    marginRight: 10,
+  },
+  subscriptionBannerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#856404',
+  },
+  subscriptionBannerSubtitle: {
+    fontSize: 12,
+    color: '#856404',
+    marginTop: 2,
+  },
+  subscribeButton: {
+    backgroundColor: '#000',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 4,
+  },
+  subscribeButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   tabContainer: {
     flexDirection: 'row',
@@ -844,6 +1061,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  subscriptionRequiredAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#dc3545',
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 20,
+  },
+  subscriptionRequiredText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
   modalInfoSection: {
     marginBottom: 20,
   },
@@ -884,6 +1116,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   modalEnrollButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  modalSubscribeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#dc3545',
+    padding: 16,
+    borderRadius: 6,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  modalSubscribeButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',

@@ -81,7 +81,7 @@ export default function CoreDashboardScreen({ navigation }) {
         // Load course details for each enrolled course
         Promise.all(
           courseIds.map(courseId => 
-            getCourseDetails(courseId, enrolledData[ourseId])
+            getCourseDetails(courseId, enrolledData[courseId]) // FIXED: was [ourseId]
           )
         ).then(coursesData => {
           const validCourses = coursesData.filter(course => course !== null);
@@ -106,6 +106,12 @@ export default function CoreDashboardScreen({ navigation }) {
           setCourses(validCourses);
           setLoading(false);
           setRefreshing(false);
+        }).catch(error => {
+          console.error('Error loading course details:', error);
+          setCourses([]);
+          setStats({ enrolled: 0, completed: 0, inProgress: 0 });
+          setLoading(false);
+          setRefreshing(false);
         });
       } else {
         setCourses([]);
@@ -113,6 +119,12 @@ export default function CoreDashboardScreen({ navigation }) {
         setLoading(false);
         setRefreshing(false);
       }
+    }, (error) => {
+      console.error('Error loading enrolled courses:', error);
+      setCourses([]);
+      setStats({ enrolled: 0, completed: 0, inProgress: 0 });
+      setLoading(false);
+      setRefreshing(false);
     });
 
     return unsubscribe;
@@ -121,8 +133,10 @@ export default function CoreDashboardScreen({ navigation }) {
   const getCourseDetails = async (courseId, enrollment) => {
     try {
       const courseRef = ref(db, `courses/${courseId}`);
-      const snapshot = await new Promise((resolve) => {
-        onValue(courseRef, resolve, { onlyOnce: true });
+      const snapshot = await new Promise((resolve, reject) => {
+        onValue(courseRef, resolve, { 
+          onlyOnce: true 
+        }, reject);
       });
       
       if (snapshot.exists()) {
@@ -130,14 +144,14 @@ export default function CoreDashboardScreen({ navigation }) {
         return {
           id: courseId,
           title: courseData.title || 'Untitled Course',
-          progress: enrollment.progress || 0,
+          progress: enrollment?.progress || 0,
           category: courseData.category || 'General',
           instructor: courseData.instructor || 'Unknown Instructor',
         };
       }
       return null;
     } catch (error) {
-      console.error('Error loading course:', error);
+      console.error('Error loading course:', courseId, error);
       return null;
     }
   };

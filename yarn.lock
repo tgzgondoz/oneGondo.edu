@@ -2377,6 +2377,11 @@
   resolved "https://registry.npmjs.org/@types/stack-utils/-/stack-utils-2.0.3.tgz"
   integrity sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==
 
+"@types/validator@^13.6.3":
+  version "13.15.10"
+  resolved "https://registry.yarnpkg.com/@types/validator/-/validator-13.15.10.tgz#742b77ec34d58554b94a76a14cef30d59e3c16b9"
+  integrity sha512-T8L6i7wCuyoK8A/ZeLYt1+q0ty3Zb9+qbSSvrIVitzT3YjZqkTZ40IbRsPanlB4h1QB3JVL1SYCdR6ngtFYcuA==
+
 "@types/yargs-parser@*":
   version "21.0.3"
   resolved "https://registry.npmjs.org/@types/yargs-parser/-/yargs-parser-21.0.3.tgz"
@@ -4015,7 +4020,7 @@ input-otp@1.4.2:
   resolved "https://registry.yarnpkg.com/input-otp/-/input-otp-1.4.2.tgz#f4d3d587d0f641729e55029b3b8c4870847f4f07"
   integrity sha512-l3jWwYNvrEa6NTCt7BECfCm48GvwuZzkoeG3gBL2w4CHeOXW3eKFmf9UNYkNfYc3mxMrthMnxjIE07MT0zLBQA==
 
-invariant@^2.2.4:
+invariant@2.2.4, invariant@^2.2.4:
   version "2.2.4"
   resolved "https://registry.npmjs.org/invariant/-/invariant-2.2.4.tgz"
   integrity sha512-phJfQVBuaJM5raOpJjSfkiD6BpbCE4Ns//LaXl6wGYtUBY83nWS6Rf9tXm2e8VaK60JEjYldbPif/A2B1C2gNA==
@@ -5590,6 +5595,15 @@ react-native-is-edge-to-edge@^1.2.1:
   resolved "https://registry.npmjs.org/react-native-is-edge-to-edge/-/react-native-is-edge-to-edge-1.2.1.tgz"
   integrity sha512-FLbPWl/MyYQWz+KwqOZsSyj2JmLKglHatd3xLZWskXOpRaio4LfEDEz8E/A6uD8QoTHW6Aobw1jbEwK7KMgR7Q==
 
+react-native-paystack-webview@^5.0.3:
+  version "5.0.3"
+  resolved "https://registry.yarnpkg.com/react-native-paystack-webview/-/react-native-paystack-webview-5.0.3.tgz#ff547eedb47b8965dd2b151dc80fb6d08e0a846e"
+  integrity sha512-NkQX2YD0Jqir+VAEnpRbBi/HeqZSpCcUHOpB3OSA9Ez1PdJ7jhx7kkhl6dB0CPaqrPHUXjPG7aZoXoA7V7b81Q==
+  dependencies:
+    "@types/validator" "^13.6.3"
+    react-native-webview "*"
+    validator "^13.6.0"
+
 react-native-safe-area-context@~5.6.0:
   version "5.6.2"
   resolved "https://registry.npmjs.org/react-native-safe-area-context/-/react-native-safe-area-context-5.6.2.tgz"
@@ -5618,6 +5632,14 @@ react-native-vector-icons@^10.3.0:
   dependencies:
     prop-types "^15.7.2"
     yargs "^16.1.1"
+
+react-native-webview@*, react-native-webview@^13.16.0:
+  version "13.16.0"
+  resolved "https://registry.yarnpkg.com/react-native-webview/-/react-native-webview-13.16.0.tgz#c995148f944a7eaf12389f0e6d5c6f5e6a775686"
+  integrity sha512-Nh13xKZWW35C0dbOskD7OX01nQQavOzHbCw9XoZmar4eXCo7AvrYJ0jlUfRVVIJzqINxHlpECYLdmAdFsl9xDA==
+  dependencies:
+    escape-string-regexp "^4.0.0"
+    invariant "2.2.4"
 
 react-native@0.81.5:
   version "0.81.5"
@@ -6391,6 +6413,11 @@ validate-npm-package-name@^5.0.0:
   version "5.0.1"
   resolved "https://registry.npmjs.org/validate-npm-package-name/-/validate-npm-package-name-5.0.1.tgz"
   integrity sha512-OljLrQ9SQdOUqTaQxqL5dEfZWrXExyyWsozYlAWFawPVNuD83igl7uJD2RTkNMbniIYgt8l81eCJGIdQF7avLQ==
+
+validator@^13.6.0:
+  version "13.15.26"
+  resolved "https://registry.yarnpkg.com/validator/-/validator-13.15.26.tgz#36c3deeab30e97806a658728a155c66fcaa5b944"
+  integrity sha512-spH26xU080ydGggxRyR1Yhcbgx+j3y5jbNXk/8L+iRvdIEQ4uTRH2Sgf2dokud6Q4oAtsbNvJ1Ft+9xmm6IZcA==
 
 vary@~1.1.2:
   version "1.1.2"

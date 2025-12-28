@@ -13,6 +13,7 @@ import QuizAttemptsScreen from '../screens/student/QuizAttemptsScreen';
 import TakeQuizScreen from '../screens/student/TakeQuizScreen';
 import QuizResultsScreen from '../screens/student/QuizResultsScreen';
 import VideoPlayerScreen from '../screens/student/VideoPlayerScreen';
+import PaymentScreen from '../screens/student/PaymentScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -57,7 +58,39 @@ function CoursesStack() {
   );
 }
 
-// Main Student Navigator
+// Profile Stack Navigator - Now includes Payment screen
+function ProfileStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen 
+        name="ProfileMain" 
+        component={ProfileScreen} 
+      />
+      <Stack.Screen 
+        name="Payment" 
+        component={PaymentScreen} 
+        options={{
+          headerShown: true,
+          title: 'Subscribe',
+          headerBackTitle: 'Back',
+          headerStyle: {
+            backgroundColor: '#fff',
+          },
+          headerTintColor: '#000',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+// Main Student Bottom Tab Navigator
 export default function StudentNavigator() {
   return (
     <Tab.Navigator
@@ -83,8 +116,8 @@ export default function StudentNavigator() {
           borderTopWidth: 1,
           borderTopColor: '#e0e0e0',
           height: 60,
-          paddingBottom: 5,
-          paddingTop: 5,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -97,14 +130,16 @@ export default function StudentNavigator() {
         component={DashboardScreen} 
         options={{ title: 'Dashboard' }}
       />
+
       <Tab.Screen 
         name="Courses" 
         component={CoursesStack} 
         options={{ title: 'Courses' }}
       />
+
       <Tab.Screen 
         name="Profile" 
-        component={ProfileScreen} 
+        component={ProfileStack} 
         options={{ title: 'Profile' }}
       />
     </Tab.Navigator>
