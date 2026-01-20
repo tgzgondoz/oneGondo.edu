@@ -307,22 +307,6 @@ export default function RegisterScreen({ navigation }) {
                   )}
                 </TouchableOpacity>
 
-                <View style={styles.dividerContainer}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>Or sign up with</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                {/* Social Signup Buttons - Placeholder */}
-                <View style={styles.socialButtonsContainer}>
-                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
-                    <Text style={styles.socialButtonText}>Google</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
-                    <Text style={styles.socialButtonText}>Facebook</Text>
-                  </TouchableOpacity>
-                </View>
-
                 <View style={styles.loginContainer}>
                   <Text style={styles.loginText}>Already have an account?</Text>
                   <TouchableOpacity
@@ -497,41 +481,6 @@ const styles = StyleSheet.create({
     color: "#fff", 
     fontSize: 16, 
     fontWeight: "600" 
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#e0e0e0",
-  },
-  dividerText: {
-    color: "#666",
-    fontSize: 14,
-    marginHorizontal: 12,
-  },
-  socialButtonsContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 12,
-    marginBottom: 20,
-  },
-  socialButton: {
-    flex: 1,
-    backgroundColor: "#f8f8f8",
-    padding: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    alignItems: "center",
-  },
-  socialButtonText: {
-    color: "#333",
-    fontSize: 14,
-    fontWeight: "500",
   },
   loginContainer: {
     flexDirection: "row",

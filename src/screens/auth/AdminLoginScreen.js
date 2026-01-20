@@ -242,11 +242,7 @@ export default function AdminLoginScreen({ navigation }) {
                   <Text style={styles.studentLoginText}>Student Login</Text>
                 </TouchableOpacity>
 
-                <View style={styles.noteContainer}>
-                  <Text style={styles.noteText}>
-                    This portal is restricted to authorized faculty and staff only.
-                  </Text>
-                </View>
+               
               </View>
             </Animated.View>
           </ScrollView>
